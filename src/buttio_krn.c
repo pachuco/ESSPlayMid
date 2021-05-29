@@ -16,9 +16,9 @@
 #include <ntddk.h>
 #include "buttio.h"
 
-void NTAPI Ke386SetIoAccessMap(int, UCHAR*);
-void NTAPI Ke386QueryIoAccessMap(int, UCHAR*);
-void NTAPI Ke386IoSetAccessProcess(PEPROCESS, int);
+extern void NTAPI Ke386SetIoAccessMap(int, UCHAR*);
+extern void NTAPI Ke386QueryIoAccessMap(int, UCHAR*);
+extern void NTAPI Ke386IoSetAccessProcess(PEPROCESS, int);
 
 #define PP(_X) ((void*)(LONG_PTR)_X)
 
@@ -123,8 +123,10 @@ static NTSTATUS NTAPI device_control(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp
                 
                 //I believe Ke386SetIoAccessMap() acts on current process only.
                 //So using PsLookupProcessByProcessId() won't do much good.
-                //Ke386SetIoAccessMap(1, g_pIopmMap);
-                //Ke386IoSetAccessProcess(PsGetCurrentProcess(), 1);
+                if (1) {
+                    Ke386SetIoAccessMap(1, g_pIopmMap);
+                    Ke386IoSetAccessProcess(PsGetCurrentProcess(), 1);
+                }
                 status = STATUS_SUCCESS;
             }
             break;
@@ -132,8 +134,10 @@ static NTSTATUS NTAPI device_control(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp
         case IOCTL_UNREGISTER_ALLPORTS:
             iopm_fillAll(g_pIopmMap, FALSE);
             
-            //Ke386SetIoAccessMap(1, g_pIopmMap);
-            //Ke386IoSetAccessProcess(PsGetCurrentProcess(), 0);
+            if (1) {
+                Ke386SetIoAccessMap(1, g_pIopmMap);
+                Ke386IoSetAccessProcess(PsGetCurrentProcess(), 0);
+            }
             status = STATUS_SUCCESS;
             break;
         
