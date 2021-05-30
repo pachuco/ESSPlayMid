@@ -1,7 +1,6 @@
 #pragma once
 
 #define IOPM_SIZE       0x2000
-typedef struct _IOHandler IOHandler;
 
 #ifdef CODEISDRIVER
     //driver specific
@@ -18,6 +17,13 @@ typedef struct _IOHandler IOHandler;
         BUTTIO_MET_DRIVERCALL
     };
     
+    #define BUTTIO_RU8(PIOHAND,  PORT, PDATA) (PIOHAND)->vt->ru8(PIOHAND,  PORT, PDATA)
+    #define BUTTIO_RU16(PIOHAND, PORT, PDATA) (PIOHAND)->vt->ru16(PIOHAND, PORT, PDATA)
+    #define BUTTIO_RU32(PIOHAND, PORT, PDATA) (PIOHAND)->vt->ru32(PIOHAND, PORT, PDATA)
+    #define BUTTIO_WU8(PIOHAND,  PORT, DATA)  (PIOHAND)->vt->wu8(PIOHAND,  PORT, DATA)
+    #define BUTTIO_WU16(PIOHAND, PORT, DATA)  (PIOHAND)->vt->wu16(PIOHAND, PORT, DATA)
+    #define BUTTIO_WU32(PIOHAND, PORT, DATA)  (PIOHAND)->vt->wu32(PIOHAND, PORT, DATA)
+    typedef struct _IOHandler IOHandler;
     typedef struct _IOHandler {
         struct IOVtable {
             BOOL (*ru8) (IOHandler* pIoHand, USHORT port, UCHAR*  pData);
