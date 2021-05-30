@@ -4,7 +4,7 @@
 #define FMREGLENGTH 595
 
 typedef struct {
-    ButtioPortHandler pHandler;
+    IOHandler ioHand;
     UCHAR* patches;
     UCHAR  registers[FMREGLENGTH];
     USHORT port;

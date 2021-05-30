@@ -19,50 +19,40 @@ static SC_HANDLE g_manager = NULL;
 static SC_HANDLE g_service = NULL;
 static HANDLE    g_driverFile = NULL;
 
-typedef struct {
-    BOOL (*ru8) (ButtioPortHandler* portHandler, USHORT port, UCHAR*  pData);
-    BOOL (*ru16)(ButtioPortHandler* portHandler, USHORT port, USHORT* pData);
-    BOOL (*ru32)(ButtioPortHandler* portHandler, USHORT port, ULONG*  pData);
-    BOOL (*wu8) (ButtioPortHandler* portHandler, USHORT port, UCHAR   data);
-    BOOL (*wu16)(ButtioPortHandler* portHandler, USHORT port, USHORT  data);
-    BOOL (*wu32)(ButtioPortHandler* portHandler, USHORT port, ULONG   data);
-    UCHAR ioMethod;
-} IOVtable;
-
 //BOOL DeviceIoControl(HANDLE dev, DWORD ioctl, LPVOID in, DWORD inSize, LPVOID out, DWORD outSize, LPDWORD pRetSize, NULL);
 
 //--------------------------------------------------------------------
-static BOOL direct_ru8(ButtioPortHandler* portHandler, USHORT port, UCHAR* pData) {
-    if (iopm_isIoDenied(portHandler->iopm, port, sizeof(UCHAR))) return FALSE;
+static BOOL direct_ru8(IOHandler* pIoHand, USHORT port, UCHAR* pData) {
+    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(UCHAR))) return FALSE;
     __asm__ volatile("inb %1, %0" : "=a" (*pData) : "d" (port));
     return TRUE;
 }
-static BOOL direct_ru16(ButtioPortHandler* portHandler, USHORT port, USHORT* pData) {
-    if (iopm_isIoDenied(portHandler->iopm, port, sizeof(USHORT))) return FALSE;
+static BOOL direct_ru16(IOHandler* pIoHand, USHORT port, USHORT* pData) {
+    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(USHORT))) return FALSE;
     __asm__ volatile("inw %1, %0" : "=a" (*pData) : "d" (port));
     return TRUE;
 }
-static BOOL direct_ru32(ButtioPortHandler* portHandler, USHORT port, ULONG* pData) {
-    if (iopm_isIoDenied(portHandler->iopm, port, sizeof(ULONG))) return FALSE;
+static BOOL direct_ru32(IOHandler* pIoHand, USHORT port, ULONG* pData) {
+    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(ULONG))) return FALSE;
     __asm__ volatile("inl %1, %0" : "=a" (*pData) : "d" (port));
     return TRUE;
 }
-static BOOL direct_wu8(ButtioPortHandler* portHandler, USHORT port, UCHAR data) {
-    if (iopm_isIoDenied(portHandler->iopm, port, sizeof(UCHAR))) return FALSE;
+static BOOL direct_wu8(IOHandler* pIoHand, USHORT port, UCHAR data) {
+    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(UCHAR))) return FALSE;
     __asm__ volatile("outb %0, %1" : : "a" (data), "d" (port));
     return TRUE;
 }
-static BOOL direct_wu16(ButtioPortHandler* portHandler, USHORT port, USHORT data) {
-    if (iopm_isIoDenied(portHandler->iopm, port, sizeof(USHORT))) return FALSE;
+static BOOL direct_wu16(IOHandler* pIoHand, USHORT port, USHORT data) {
+    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(USHORT))) return FALSE;
     __asm__ volatile("outw %0, %1" : : "a" (data), "d" (port));
     return TRUE;
 }
-static BOOL direct_wu32(ButtioPortHandler* portHandler, USHORT port, ULONG data) {
-    if (iopm_isIoDenied(portHandler->iopm, port, sizeof(ULONG))) return FALSE;
+static BOOL direct_wu32(IOHandler* pIoHand, USHORT port, ULONG data) {
+    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(ULONG))) return FALSE;
     __asm__ volatile("outl %0, %1" : : "a" (data), "d" (port));
     return TRUE;
 }
-static IOVtable direct_handler = {
+static struct IOVtable direct_handler = {
     &direct_ru8,
     &direct_ru16,
     &direct_ru32,
@@ -72,7 +62,7 @@ static IOVtable direct_handler = {
     BUTTIO_MET_DIRECT
 };
 //--------------------------------------------------------------------
-static IOVtable iopm_handler = {
+static struct IOVtable iopm_handler = {
     &direct_ru8,
     &direct_ru16,
     &direct_ru32,
@@ -83,46 +73,46 @@ static IOVtable iopm_handler = {
 };
 //--------------------------------------------------------------------
 //TODO: maybe sanitize alignments
-static BOOL driverCall_ru8(ButtioPortHandler* portHandler, USHORT port, UCHAR* pData) {
+static BOOL driverCall_ru8(IOHandler* pIoHand, USHORT port, UCHAR* pData) {
     DWORD bytesWritten;
     
-    if (iopm_isIoDenied(portHandler->iopm, port, sizeof(UCHAR))) return FALSE;
+    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(UCHAR))) return FALSE;
     return DeviceIoControl(g_driverFile, IOCTL_READ_8, &port, sizeof(USHORT), pData, sizeof(UCHAR), &bytesWritten, NULL);
 }
-static BOOL driverCall_ru16(ButtioPortHandler* portHandler, USHORT port, USHORT* pData) {
+static BOOL driverCall_ru16(IOHandler* pIoHand, USHORT port, USHORT* pData) {
     DWORD bytesWritten;
     
-    if (iopm_isIoDenied(portHandler->iopm, port, sizeof(USHORT))) return FALSE;
+    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(USHORT))) return FALSE;
     return DeviceIoControl(g_driverFile, IOCTL_READ_16, &port, sizeof(USHORT), pData, sizeof(USHORT), &bytesWritten, NULL);
 }
-static BOOL driverCall_ru32(ButtioPortHandler* portHandler, USHORT port, ULONG* pData) {
+static BOOL driverCall_ru32(IOHandler* pIoHand, USHORT port, ULONG* pData) {
     DWORD bytesWritten;
     
-    if (iopm_isIoDenied(portHandler->iopm, port, sizeof(ULONG))) return FALSE;
+    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(ULONG))) return FALSE;
     return DeviceIoControl(g_driverFile, IOCTL_READ_32, &port, sizeof(USHORT), pData, sizeof(ULONG), &bytesWritten, NULL);
 }
-static BOOL driverCall_wu8(ButtioPortHandler* portHandler, USHORT port, UCHAR data) {
+static BOOL driverCall_wu8(IOHandler* pIoHand, USHORT port, UCHAR data) {
     DWORD bytesWritten;
     DriverWritePacket pack = {port, {data}};
     
-    if (iopm_isIoDenied(portHandler->iopm, port, sizeof(UCHAR))) return FALSE;
+    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(UCHAR))) return FALSE;
     return DeviceIoControl(g_driverFile, IOCTL_WRITE_8, &pack, sizeof(DriverWritePacket), NULL, 0, &bytesWritten, NULL);
 }
-static BOOL driverCall_wu16(ButtioPortHandler* portHandler, USHORT port, USHORT data) {
+static BOOL driverCall_wu16(IOHandler* pIoHand, USHORT port, USHORT data) {
     DWORD bytesWritten;
     DriverWritePacket pack = {port, {data}};
     
-    if (iopm_isIoDenied(portHandler->iopm, port, sizeof(USHORT))) return FALSE;
+    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(USHORT))) return FALSE;
     return DeviceIoControl(g_driverFile, IOCTL_WRITE_16, &pack, sizeof(DriverWritePacket), NULL, 0, &bytesWritten, NULL);
 }
-static BOOL driverCall_wu32(ButtioPortHandler* portHandler, USHORT port, ULONG data) {
+static BOOL driverCall_wu32(IOHandler* pIoHand, USHORT port, ULONG data) {
     DWORD bytesWritten;
     DriverWritePacket pack = {port, {data}};
     
-    if (iopm_isIoDenied(portHandler->iopm, port, sizeof(ULONG))) return FALSE;
+    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(ULONG))) return FALSE;
     return DeviceIoControl(g_driverFile, IOCTL_WRITE_32, &pack, sizeof(DriverWritePacket), NULL, 0, &bytesWritten, NULL);
 }
-static IOVtable driverCall_handler = {
+static struct IOVtable driverCall_handler = {
     &driverCall_ru8,
     &driverCall_ru16,
     &driverCall_ru32,
@@ -139,13 +129,13 @@ static IOVtable driverCall_handler = {
 
 
 
-void buttio_shutdown(ButtioPortHandler* portHandler) {
+void buttio_shutdown(IOHandler* pIoHand) {
     SERVICE_STATUS status;
     
-    iopm_fillAll(portHandler->iopm, FALSE);
+    iopm_fillAll(pIoHand->iopm, FALSE);
     
     if (g_driverFile) {
-        buttio_flushIOPMChanges(portHandler);
+        buttio_flushIOPMChanges(pIoHand);
         CloseHandle(g_driverFile);
         g_driverFile = NULL;
     }
@@ -160,11 +150,11 @@ void buttio_shutdown(ButtioPortHandler* portHandler) {
         g_manager = NULL;
     }
     
-    memset(portHandler, 0, sizeof(IOVtable));
+    pIoHand->vt = NULL;
     
     g_isInit = FALSE;
 }
-BOOL buttio_init(ButtioPortHandler* portHandler, HANDLE modHand, UCHAR preferedIOMethod) {
+BOOL buttio_init(IOHandler* pIoHand, HANDLE modHand, UCHAR preferedIOMethod) {
     OSVERSIONINFOA verInfo = {0};
     
     verInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOA);
@@ -219,41 +209,40 @@ BOOL buttio_init(ButtioPortHandler* portHandler, HANDLE modHand, UCHAR preferedI
     if (g_isInit) {
         if (!g_isDriverRequired) {
             preferedIOMethod = BUTTIO_MET_DIRECT;
-            memcpy(portHandler, &direct_handler, sizeof(IOVtable));
+            pIoHand->vt = &direct_handler;
         } else {
             if (preferedIOMethod == BUTTIO_MET_DIRECT) {
                 preferedIOMethod = BUTTIO_MET_IOPM;
             }
             
             if (preferedIOMethod == BUTTIO_MET_IOPM) {
-                memcpy(portHandler, &iopm_handler, sizeof(IOVtable));
+                pIoHand->vt = &iopm_handler;
             } else {
-                memcpy(portHandler, &driverCall_handler, sizeof(driverCall_handler));
+                pIoHand->vt = &driverCall_handler;
             }
         }
     } else {
-        buttio_shutdown(portHandler);
+        buttio_shutdown(pIoHand);
         return FALSE;
     }
     
-    portHandler->ioMethod = preferedIOMethod;
-    iopm_fillAll(portHandler->iopm, FALSE);
+    iopm_fillAll(pIoHand->iopm, FALSE);
     
     return TRUE;
 }
 
-BOOL buttio_flushIOPMChanges(ButtioPortHandler* portHandler) {
+BOOL buttio_flushIOPMChanges(IOHandler* pIoHand) {
     DWORD bytesWritten;
     BOOL ret = TRUE;
     
     if (!g_isInit) return FALSE;
     if (!g_isDriverRequired) return TRUE;
     
-    if (portHandler->ioMethod == BUTTIO_MET_IOPM) {
-        if (iopm_isIopmOpaque(portHandler->iopm)) {
+    if (pIoHand->vt->ioMethod == BUTTIO_MET_IOPM) {
+        if (iopm_isIopmOpaque(pIoHand->iopm)) {
             ret = DeviceIoControl(g_driverFile, IOCTLNR_IOPM_UNREGISTER, NULL, 0, NULL, 0, &bytesWritten, NULL);
         } else {
-            ret = DeviceIoControl(g_driverFile, IOCTLNR_IOPM_REGISTER, portHandler->iopm, IOPM_SIZE, NULL, 0, &bytesWritten, NULL);
+            ret = DeviceIoControl(g_driverFile, IOCTLNR_IOPM_REGISTER, pIoHand->iopm, IOPM_SIZE, NULL, 0, &bytesWritten, NULL);
         }
         Sleep(1);
     }

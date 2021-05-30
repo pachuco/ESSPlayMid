@@ -24,9 +24,9 @@ int main(int argc, char* argv[]) {
     getPortConfig(CONFNAME, &fmConfig);
     printf("FM port %X\n", fmConfig.port);
     
-    if (buttio_init(&fmConfig.pHandler, NULL, BUTTIO_MET_IOPM)) return 1;
+    if (buttio_init(&fmConfig.ioHand, NULL, BUTTIO_MET_IOPM)) return 1;
     
-    buttio_shutdown(&fmConfig.pHandler);
+    buttio_shutdown(&fmConfig.ioHand);
     
     return 0;
 }

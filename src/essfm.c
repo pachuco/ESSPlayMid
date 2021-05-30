@@ -2,8 +2,8 @@
 #include "essfm.h"
 #include "buttio.h"
 
-#define WRITE_PORT_UCHAR(CONF, PORT, DATA)  (CONF)->pHandler.wu8(&(CONF)->pHandler, (CONF)->port + (PORT), (DATA))
-#define READ_PORT_UCHAR(CONF, PORT,  PDATA) (CONF)->pHandler.ru8(&(CONF)->pHandler, (CONF)->port + (PORT), (PDATA))
+#define WRITE_PORT_UCHAR(CONF, PORT, DATA)  (CONF)->ioHand.vt->wu8(&(CONF)->ioHand, (CONF)->port + (PORT), (DATA))
+#define READ_PORT_UCHAR(CONF, PORT,  PDATA) (CONF)->ioHand.vt->ru8(&(CONF)->ioHand, (CONF)->port + (PORT), (PDATA))
 
 //not very accurate
 void QPCuWait(DWORD uSecTime) { //KeStallExecutionProcessor

@@ -1,7 +1,7 @@
 #pragma once
 
 #define IOPM_SIZE       0x2000
-typedef struct _ButtioPortHandler ButtioPortHandler;
+typedef struct _IOHandler IOHandler;
 
 #ifdef CODEISDRIVER
     //driver specific
@@ -18,20 +18,22 @@ typedef struct _ButtioPortHandler ButtioPortHandler;
         BUTTIO_MET_DRIVERCALL
     };
     
-    typedef struct _ButtioPortHandler {
-        BOOL (*ru8) (ButtioPortHandler* portHandler, USHORT port, UCHAR*  pData);
-        BOOL (*ru16)(ButtioPortHandler* portHandler, USHORT port, USHORT* pData);
-        BOOL (*ru32)(ButtioPortHandler* portHandler, USHORT port, ULONG*  pData);
-        BOOL (*wu8) (ButtioPortHandler* portHandler, USHORT port, UCHAR   data);
-        BOOL (*wu16)(ButtioPortHandler* portHandler, USHORT port, USHORT  data);
-        BOOL (*wu32)(ButtioPortHandler* portHandler, USHORT port, ULONG   data);
-        UCHAR ioMethod;
-        UCHAR     iopm[IOPM_SIZE];
-    } ButtioPortHandler;
+    typedef struct _IOHandler {
+        struct IOVtable {
+            BOOL (*ru8) (IOHandler* pIoHand, USHORT port, UCHAR*  pData);
+            BOOL (*ru16)(IOHandler* pIoHand, USHORT port, USHORT* pData);
+            BOOL (*ru32)(IOHandler* pIoHand, USHORT port, ULONG*  pData);
+            BOOL (*wu8) (IOHandler* pIoHand, USHORT port, UCHAR   data);
+            BOOL (*wu16)(IOHandler* pIoHand, USHORT port, USHORT  data);
+            BOOL (*wu32)(IOHandler* pIoHand, USHORT port, ULONG   data);
+            UCHAR ioMethod;
+        } *vt;
+        UCHAR iopm[IOPM_SIZE];
+    } IOHandler;
 
-    void buttio_shutdown          (ButtioPortHandler* portHandler);
-    BOOL buttio_init              (ButtioPortHandler* portHandler, HANDLE modHand, UCHAR preferedIOMethod);
-    BOOL buttio_flushIOPMChanges  (ButtioPortHandler* portHandler);
+    void buttio_shutdown          (IOHandler* pIoHand);
+    BOOL buttio_init              (IOHandler* pIoHand, HANDLE modHand, UCHAR preferedIOMethod);
+    BOOL buttio_flushIOPMChanges  (IOHandler* pIoHand);
 #endif
 BOOL iopm_isIopmOpaque(UCHAR* pIopm);
 BOOL iopm_isIoDenied  (UCHAR* pIopm, USHORT port, UCHAR width);
