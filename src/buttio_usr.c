@@ -249,12 +249,14 @@ BOOL buttio_flushIOPMChanges(ButtioPortHandler* portHandler) {
     if (!g_isInit) return FALSE;
     if (!g_isDriverRequired) return TRUE;
     
-    if (iopm_isIopmOpaque(portHandler->iopm)) {
-        ret = DeviceIoControl(g_driverFile, IOCTLNR_IOPM_UNREGISTER, NULL, 0, NULL, 0, &bytesWritten, NULL);
-    } else {
-        ret = DeviceIoControl(g_driverFile, IOCTLNR_IOPM_REGISTER, portHandler->iopm, IOPM_SIZE, NULL, 0, &bytesWritten, NULL);
+    if (portHandler->ioMethod == BUTTIO_MET_IOPM) {
+        if (iopm_isIopmOpaque(portHandler->iopm)) {
+            ret = DeviceIoControl(g_driverFile, IOCTLNR_IOPM_UNREGISTER, NULL, 0, NULL, 0, &bytesWritten, NULL);
+        } else {
+            ret = DeviceIoControl(g_driverFile, IOCTLNR_IOPM_REGISTER, portHandler->iopm, IOPM_SIZE, NULL, 0, &bytesWritten, NULL);
+        }
+        Sleep(1);
     }
-    Sleep(1);
     
     return ret;
 }
