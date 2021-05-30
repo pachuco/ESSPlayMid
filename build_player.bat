@@ -4,7 +4,7 @@ call getcomp.bat rosbe
 
 set opts=-std=c99 -mconsole -Os -s -Wall -Wextra -DNONMMAP_FALLBACK
 set linkinc=
-set compiles=src\main.c src\essfm.c src\util.c src\buttio_usr.c
+set compiles=src\main.c src\essfm.c src\util.c src\buttio_usr.c src\buttio_common.c
 set errlog=.\essmidi_err.log
 
 del .\bin\essmidi.exe

@@ -16,7 +16,7 @@ set linkinc=-I=/i686-w64-mingw32/include/ddk
 ::set linkinc=-I%COMPILER_PATH%/../i686-w64-mingw32/include/ddk
 
 set linkinc=%linkinc% -lntoskrnl -lhal
-set compiles=.\src\buttio_krn.c
+set compiles=.\src\buttio_krn.c .\src\buttio_common.c
 set errlog=.\buttio_err.log
 
 del .\bin\buttio.sys

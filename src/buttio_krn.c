@@ -29,49 +29,6 @@ UNICODE_STRING g_uniDevicePath, g_uniDosDevicePath;
 static UCHAR* g_pIopmMap = NULL;
 
 /////////////////////////////////////////////////////////////////////////////
-//1 bit means blocked port, and viceversa
-BOOL iopm_isIoDenied(UCHAR* pIopm, USHORT port, UCHAR width) {
-    BOOL isDenied = 0;
-    
-    //Mysoft says real IO wraps
-    for (UCHAR i=0; i < width; i++) {
-        USHORT portOff = port+i;
-        
-        isDenied |= pIopm[portOff>>3] & (1<<i);
-    }
-    return isDenied;
-}
-
-
-void iopm_fillRange(UCHAR* pIopm, PortRange* pRange) {
-    BOOL isEnabled = pRange->isEnabled ? 1 : 0; //sanitize
-    
-    for (ULONG i=pRange->first; i <= pRange->last; ) {
-        ULONG todo = pRange->last - i;
-        
-        if (todo >= 8 && (i&7) == 0) {
-            ULONG todo = (pRange->last& ~7) - i;
-            __builtin_memset(&pIopm[i>>3], (isEnabled ? 0 : ~0), todo>>3);
-            i += todo;
-        } else {
-            if (isEnabled) {
-                pIopm[i>>3] &= ~(1<<(i&7));
-            } else {
-                pIopm[i>>3] |= (1<<(i&7));
-            }
-            
-            i++;
-        }
-    }
-}
-
-static void iopm_fillAll(UCHAR* pIopm, BOOL isEnabled) {
-    PortRange range = { 0x0000, 0xFFFF, isEnabled };
-    
-    iopm_fillRange(pIopm, &range);
-}
-
-/////////////////////////////////////////////////////////////////////////////
 static NTSTATUS NTAPI device_dispatch(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp) {
     (void)DeviceObject;
     
@@ -112,32 +69,27 @@ static NTSTATUS NTAPI device_control(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp
             }
             break;
             
-        case IOCTL_REGISTER_PORTRANGE:
-            if (inSize < sizeof(PortRange)) {
+        case IOCTLNR_IOPM_REGISTER:
+            if (inSize < IOPM_SIZE) {
                 status = STATUS_BUFFER_TOO_SMALL;
             } else {
-                int count = inSize / sizeof(PortRange);
-                PortRange* pRange = (PortRange*)data;
-                
-                for (int i=0; i < count; i++) iopm_fillRange(g_pIopmMap, &pRange[i]);
+                __builtin_memcpy(g_pIopmMap, (UCHAR*)data, IOPM_SIZE);
                 
                 //I believe Ke386SetIoAccessMap() acts on current process only.
                 //So using PsLookupProcessByProcessId() won't do much good.
-                if (1) {
-                    Ke386SetIoAccessMap(1, g_pIopmMap);
-                    Ke386IoSetAccessProcess(PsGetCurrentProcess(), 1);
-                }
+                Ke386SetIoAccessMap(1, g_pIopmMap);
+                Ke386IoSetAccessProcess(PsGetCurrentProcess(), 1);
+                
                 status = STATUS_SUCCESS;
             }
             break;
             
-        case IOCTL_UNREGISTER_ALLPORTS:
+        case IOCTLNR_IOPM_UNREGISTER:
             iopm_fillAll(g_pIopmMap, FALSE);
             
-            if (1) {
-                Ke386SetIoAccessMap(1, g_pIopmMap);
-                Ke386IoSetAccessProcess(PsGetCurrentProcess(), 0);
-            }
+            Ke386SetIoAccessMap(1, g_pIopmMap);
+            Ke386IoSetAccessProcess(PsGetCurrentProcess(), 0);
+            
             status = STATUS_SUCCESS;
             break;
         
@@ -150,26 +102,20 @@ static NTSTATUS NTAPI device_control(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp
                 status = STATUS_BUFFER_TOO_SMALL;
             } else {
                 USHORT port = *((PUSHORT)data);
-                BOOL isDenied;
                 
-                isDenied = iopm_isIoDenied(g_pIopmMap, port, ioSize);
-                if (isDenied) {
-                    status = STATUS_ACCESS_DENIED;
-                } else {
-                    switch (ioSize) {
-                        case sizeof(ULONG):
-                            *((PULONG)data)  = READ_PORT_ULONG(PP(port));
-                            break;
-                        case sizeof(USHORT):
-                            *((PUSHORT)data) = READ_PORT_USHORT(PP(port));
-                            break;
-                        case sizeof(UCHAR):
-                            *((PUCHAR)data)  = READ_PORT_UCHAR(PP(port));
-                            break;
-                    }
-                    writtenBytes = ioSize;
-                    status = STATUS_SUCCESS;
+                switch (ioSize) {
+                    case sizeof(ULONG):
+                        *((PULONG)data)  = READ_PORT_ULONG(PP(port));
+                        break;
+                    case sizeof(USHORT):
+                        *((PUSHORT)data) = READ_PORT_USHORT(PP(port));
+                        break;
+                    case sizeof(UCHAR):
+                        *((PUCHAR)data)  = READ_PORT_UCHAR(PP(port));
+                        break;
                 }
+                writtenBytes = ioSize;
+                status = STATUS_SUCCESS;
             }
             break;
         
@@ -178,29 +124,23 @@ static NTSTATUS NTAPI device_control(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp
         case IOCTL_WRITE_16:
             ioSize <<= 1; /* FALLTHRU */
         case IOCTL_WRITE_8:
-            if (inSize < ioSize) {
+            if (inSize < sizeof(DriverWritePacket)) {
                 status = STATUS_BUFFER_TOO_SMALL;
             } else {
                 DriverWritePacket pack = *((DriverWritePacket*)data);
-                BOOL isDenied;
                 
-                isDenied = iopm_isIoDenied(g_pIopmMap, pack.port, ioSize);
-                if (isDenied) {
-                    status = STATUS_ACCESS_DENIED;
-                } else {
-                    switch (ioSize) {
-                        case sizeof(ULONG):
-                            WRITE_PORT_USHORT(PP(pack.port), pack.data32);
-                            break;
-                        case sizeof(USHORT):
-                            WRITE_PORT_USHORT(PP(pack.port), pack.data16);
-                            break;
-                        case sizeof(UCHAR):
-                            WRITE_PORT_UCHAR(PP(pack.port), pack.data8);
-                            break;
-                    }
-                    status = STATUS_SUCCESS;
+                switch (ioSize) {
+                    case sizeof(ULONG):
+                        WRITE_PORT_USHORT(PP(pack.port), pack.data32);
+                        break;
+                    case sizeof(USHORT):
+                        WRITE_PORT_USHORT(PP(pack.port), pack.data16);
+                        break;
+                    case sizeof(UCHAR):
+                        WRITE_PORT_UCHAR(PP(pack.port), pack.data8);
+                        break;
                 }
+                status = STATUS_SUCCESS;
             }
             break;
         
