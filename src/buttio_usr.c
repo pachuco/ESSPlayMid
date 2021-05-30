@@ -21,107 +21,108 @@ static HANDLE    g_driverFile = NULL;
 
 //BOOL DeviceIoControl(HANDLE dev, DWORD ioctl, LPVOID in, DWORD inSize, LPVOID out, DWORD outSize, LPDWORD pRetSize, NULL);
 
-//--------------------------------------------------------------------
-static BOOL direct_ru8(IOHandler* pIoHand, USHORT port, UCHAR* pData) {
-    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(UCHAR))) return FALSE;
-    __asm__ volatile("inb %1, %0" : "=a" (*pData) : "d" (port));
-    return TRUE;
-}
-static BOOL direct_ru16(IOHandler* pIoHand, USHORT port, USHORT* pData) {
-    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(USHORT))) return FALSE;
-    __asm__ volatile("inw %1, %0" : "=a" (*pData) : "d" (port));
-    return TRUE;
-}
-static BOOL direct_ru32(IOHandler* pIoHand, USHORT port, ULONG* pData) {
-    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(ULONG))) return FALSE;
-    __asm__ volatile("inl %1, %0" : "=a" (*pData) : "d" (port));
-    return TRUE;
-}
-static BOOL direct_wu8(IOHandler* pIoHand, USHORT port, UCHAR data) {
-    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(UCHAR))) return FALSE;
-    __asm__ volatile("outb %0, %1" : : "a" (data), "d" (port));
-    return TRUE;
-}
-static BOOL direct_wu16(IOHandler* pIoHand, USHORT port, USHORT data) {
-    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(USHORT))) return FALSE;
-    __asm__ volatile("outw %0, %1" : : "a" (data), "d" (port));
-    return TRUE;
-}
-static BOOL direct_wu32(IOHandler* pIoHand, USHORT port, ULONG data) {
-    if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(ULONG))) return FALSE;
-    __asm__ volatile("outl %0, %1" : : "a" (data), "d" (port));
-    return TRUE;
-}
-static struct IOVtable direct_handler = {
-    &direct_ru8,
-    &direct_ru16,
-    &direct_ru32,
-    &direct_wu8,
-    &direct_wu16,
-    &direct_wu32,
-    BUTTIO_MET_DIRECT
-};
-//--------------------------------------------------------------------
-static struct IOVtable iopm_handler = {
-    &direct_ru8,
-    &direct_ru16,
-    &direct_ru32,
-    &direct_wu8,
-    &direct_wu16,
-    &direct_wu32,
-    BUTTIO_MET_IOPM
-};
-//--------------------------------------------------------------------
-//TODO: maybe sanitize alignments
-static BOOL driverCall_ru8(IOHandler* pIoHand, USHORT port, UCHAR* pData) {
+
+BOOL buttio_ru8(IOHandler* pIoHand, USHORT port, UCHAR* pData) {
     DWORD bytesWritten;
     
     if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(UCHAR))) return FALSE;
-    return DeviceIoControl(g_driverFile, IOCTL_READ_8, &port, sizeof(USHORT), pData, sizeof(UCHAR), &bytesWritten, NULL);
+    
+    switch (pIoHand->ioMethod) {
+        case BUTTIO_MET_DIRECT:  /* FALLTHRU */
+        case BUTTIO_MET_IOPM:
+            __asm__ volatile("inb %1, %0" : "=a" (*pData) : "d" (port));
+            break;
+        case BUTTIO_MET_DRIVERCALL:
+            return DeviceIoControl(g_driverFile, IOCTL_READ_8, &port, sizeof(USHORT), pData, sizeof(UCHAR), &bytesWritten, NULL);
+            break;
+    }
+    return TRUE;
 }
-static BOOL driverCall_ru16(IOHandler* pIoHand, USHORT port, USHORT* pData) {
+BOOL buttio_ru16(IOHandler* pIoHand, USHORT port, USHORT* pData) {
     DWORD bytesWritten;
     
     if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(USHORT))) return FALSE;
-    return DeviceIoControl(g_driverFile, IOCTL_READ_16, &port, sizeof(USHORT), pData, sizeof(USHORT), &bytesWritten, NULL);
+    
+    switch (pIoHand->ioMethod) {
+        case BUTTIO_MET_DIRECT:  /* FALLTHRU */
+        case BUTTIO_MET_IOPM:
+            __asm__ volatile("inw %1, %0" : "=a" (*pData) : "d" (port));
+            break;
+        case BUTTIO_MET_DRIVERCALL:
+            return DeviceIoControl(g_driverFile, IOCTL_READ_16, &port, sizeof(USHORT), pData, sizeof(USHORT), &bytesWritten, NULL);
+            break;
+    }
+    return TRUE;
 }
-static BOOL driverCall_ru32(IOHandler* pIoHand, USHORT port, ULONG* pData) {
+BOOL buttio_ru32(IOHandler* pIoHand, USHORT port, ULONG* pData) {
     DWORD bytesWritten;
     
     if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(ULONG))) return FALSE;
-    return DeviceIoControl(g_driverFile, IOCTL_READ_32, &port, sizeof(USHORT), pData, sizeof(ULONG), &bytesWritten, NULL);
+    
+    switch (pIoHand->ioMethod) {
+        case BUTTIO_MET_DIRECT:  /* FALLTHRU */
+        case BUTTIO_MET_IOPM:
+            __asm__ volatile("inl %1, %0" : "=a" (*pData) : "d" (port));
+            break;
+        case BUTTIO_MET_DRIVERCALL:
+            return DeviceIoControl(g_driverFile, IOCTL_READ_32, &port, sizeof(USHORT), pData, sizeof(ULONG), &bytesWritten, NULL);
+            break;
+    }
+    return TRUE;
 }
-static BOOL driverCall_wu8(IOHandler* pIoHand, USHORT port, UCHAR data) {
+
+
+BOOL buttio_wu8(IOHandler* pIoHand, USHORT port, UCHAR data) {
     DWORD bytesWritten;
     DriverWritePacket pack = {port, {data}};
     
     if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(UCHAR))) return FALSE;
-    return DeviceIoControl(g_driverFile, IOCTL_WRITE_8, &pack, sizeof(DriverWritePacket), NULL, 0, &bytesWritten, NULL);
+    
+    switch (pIoHand->ioMethod) {
+        case BUTTIO_MET_DIRECT:  /* FALLTHRU */
+        case BUTTIO_MET_IOPM:
+            __asm__ volatile("outb %0, %1" : : "a" (data), "d" (port));
+            break;
+        case BUTTIO_MET_DRIVERCALL:
+            return DeviceIoControl(g_driverFile, IOCTL_WRITE_8, &pack, sizeof(DriverWritePacket), NULL, 0, &bytesWritten, NULL);
+            break;
+    }
+    return TRUE;
 }
-static BOOL driverCall_wu16(IOHandler* pIoHand, USHORT port, USHORT data) {
+BOOL buttio_wu16(IOHandler* pIoHand, USHORT port, USHORT data) {
     DWORD bytesWritten;
     DriverWritePacket pack = {port, {data}};
     
     if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(USHORT))) return FALSE;
-    return DeviceIoControl(g_driverFile, IOCTL_WRITE_16, &pack, sizeof(DriverWritePacket), NULL, 0, &bytesWritten, NULL);
+    
+    switch (pIoHand->ioMethod) {
+        case BUTTIO_MET_DIRECT:  /* FALLTHRU */
+        case BUTTIO_MET_IOPM:
+            __asm__ volatile("outw %0, %1" : : "a" (data), "d" (port));
+            break;
+        case BUTTIO_MET_DRIVERCALL:
+            return DeviceIoControl(g_driverFile, IOCTL_WRITE_16, &pack, sizeof(DriverWritePacket), NULL, 0, &bytesWritten, NULL);
+            break;
+    }
+    return TRUE;
 }
-static BOOL driverCall_wu32(IOHandler* pIoHand, USHORT port, ULONG data) {
+BOOL buttio_wu32(IOHandler* pIoHand, USHORT port, ULONG data) {
     DWORD bytesWritten;
     DriverWritePacket pack = {port, {data}};
     
     if (iopm_isIoDenied(pIoHand->iopm, port, sizeof(ULONG))) return FALSE;
-    return DeviceIoControl(g_driverFile, IOCTL_WRITE_32, &pack, sizeof(DriverWritePacket), NULL, 0, &bytesWritten, NULL);
+    
+    switch (pIoHand->ioMethod) {
+        case BUTTIO_MET_DIRECT:  /* FALLTHRU */
+        case BUTTIO_MET_IOPM:
+            __asm__ volatile("outl %0, %1" : : "a" (data), "d" (port));
+            break;
+        case BUTTIO_MET_DRIVERCALL:
+            return DeviceIoControl(g_driverFile, IOCTL_WRITE_32, &pack, sizeof(DriverWritePacket), NULL, 0, &bytesWritten, NULL);
+            break;
+    }
+    return TRUE;
 }
-static struct IOVtable driverCall_handler = {
-    &driverCall_ru8,
-    &driverCall_ru16,
-    &driverCall_ru32,
-    &driverCall_wu8,
-    &driverCall_wu16,
-    &driverCall_wu32,
-    BUTTIO_MET_DRIVERCALL
-};
-//--------------------------------------------------------------------
 
 
 
@@ -149,8 +150,6 @@ void buttio_shutdown(IOHandler* pIoHand) {
         CloseServiceHandle(g_manager);
         g_manager = NULL;
     }
-    
-    pIoHand->vt = NULL;
     
     g_isInit = FALSE;
 }
@@ -209,16 +208,9 @@ BOOL buttio_init(IOHandler* pIoHand, HANDLE modHand, UCHAR preferedIOMethod) {
     if (g_isInit) {
         if (!g_isDriverRequired) {
             preferedIOMethod = BUTTIO_MET_DIRECT;
-            pIoHand->vt = &direct_handler;
         } else {
             if (preferedIOMethod == BUTTIO_MET_DIRECT) {
                 preferedIOMethod = BUTTIO_MET_IOPM;
-            }
-            
-            if (preferedIOMethod == BUTTIO_MET_IOPM) {
-                pIoHand->vt = &iopm_handler;
-            } else {
-                pIoHand->vt = &driverCall_handler;
             }
         }
     } else {
@@ -238,7 +230,7 @@ BOOL buttio_flushIOPMChanges(IOHandler* pIoHand) {
     if (!g_isInit) return FALSE;
     if (!g_isDriverRequired) return TRUE;
     
-    if (pIoHand->vt->ioMethod == BUTTIO_MET_IOPM) {
+    if (pIoHand->ioMethod == BUTTIO_MET_IOPM) {
         if (iopm_isIopmOpaque(pIoHand->iopm)) {
             ret = DeviceIoControl(g_driverFile, IOCTLNR_IOPM_UNREGISTER, NULL, 0, NULL, 0, &bytesWritten, NULL);
         } else {

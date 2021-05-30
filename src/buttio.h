@@ -17,29 +17,22 @@
         BUTTIO_MET_DRIVERCALL
     };
     
-    #define BUTTIO_RU8(PIOHAND,  PORT, PDATA) (PIOHAND)->vt->ru8(PIOHAND,  PORT, PDATA)
-    #define BUTTIO_RU16(PIOHAND, PORT, PDATA) (PIOHAND)->vt->ru16(PIOHAND, PORT, PDATA)
-    #define BUTTIO_RU32(PIOHAND, PORT, PDATA) (PIOHAND)->vt->ru32(PIOHAND, PORT, PDATA)
-    #define BUTTIO_WU8(PIOHAND,  PORT, DATA)  (PIOHAND)->vt->wu8(PIOHAND,  PORT, DATA)
-    #define BUTTIO_WU16(PIOHAND, PORT, DATA)  (PIOHAND)->vt->wu16(PIOHAND, PORT, DATA)
-    #define BUTTIO_WU32(PIOHAND, PORT, DATA)  (PIOHAND)->vt->wu32(PIOHAND, PORT, DATA)
     typedef struct _IOHandler IOHandler;
     typedef struct _IOHandler {
-        struct IOVtable {
-            BOOL (*ru8) (IOHandler* pIoHand, USHORT port, UCHAR*  pData);
-            BOOL (*ru16)(IOHandler* pIoHand, USHORT port, USHORT* pData);
-            BOOL (*ru32)(IOHandler* pIoHand, USHORT port, ULONG*  pData);
-            BOOL (*wu8) (IOHandler* pIoHand, USHORT port, UCHAR   data);
-            BOOL (*wu16)(IOHandler* pIoHand, USHORT port, USHORT  data);
-            BOOL (*wu32)(IOHandler* pIoHand, USHORT port, ULONG   data);
-            UCHAR ioMethod;
-        } *vt;
         UCHAR iopm[IOPM_SIZE];
+        UCHAR ioMethod;
     } IOHandler;
 
     void buttio_shutdown          (IOHandler* pIoHand);
     BOOL buttio_init              (IOHandler* pIoHand, HANDLE modHand, UCHAR preferedIOMethod);
     BOOL buttio_flushIOPMChanges  (IOHandler* pIoHand);
+    
+    BOOL buttio_ru8(IOHandler* pIoHand, USHORT port, UCHAR* pData);
+    BOOL buttio_ru16(IOHandler* pIoHand, USHORT port, USHORT* pData);
+    BOOL buttio_ru32(IOHandler* pIoHand, USHORT port, ULONG* pData);
+    BOOL buttio_wu8(IOHandler* pIoHand, USHORT port, UCHAR data);
+    BOOL buttio_wu16(IOHandler* pIoHand, USHORT port, USHORT data);
+    BOOL buttio_wu32(IOHandler* pIoHand, USHORT port, ULONG data);
 #endif
 BOOL iopm_isIopmOpaque(UCHAR* pIopm);
 BOOL iopm_isIoDenied  (UCHAR* pIopm, USHORT port, UCHAR width);
