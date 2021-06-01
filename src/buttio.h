@@ -27,10 +27,10 @@
     BOOL buttio_init              (IOHandler* pIoHand, HANDLE modHand, UCHAR preferedIOMethod);
     BOOL buttio_flushIOPMChanges  (IOHandler* pIoHand);
     
-    BOOL buttio_ru8(IOHandler* pIoHand, USHORT port, UCHAR* pData);
+    BOOL buttio_ru8 (IOHandler* pIoHand, USHORT port, UCHAR* pData);
     BOOL buttio_ru16(IOHandler* pIoHand, USHORT port, USHORT* pData);
     BOOL buttio_ru32(IOHandler* pIoHand, USHORT port, ULONG* pData);
-    BOOL buttio_wu8(IOHandler* pIoHand, USHORT port, UCHAR data);
+    BOOL buttio_wu8 (IOHandler* pIoHand, USHORT port, UCHAR data);
     BOOL buttio_wu16(IOHandler* pIoHand, USHORT port, USHORT data);
     BOOL buttio_wu32(IOHandler* pIoHand, USHORT port, ULONG data);
 #endif
