@@ -2,11 +2,16 @@
 
 call getcomp.bat rosbe
 
+::must not contain spaces!
+set buttiolocation=C:\p_files\prog\_proj\CodeCocks\buttio
+
 set opts=-std=c99 -mconsole -Os -s -Wall -Wextra -DNONMMAP_FALLBACK
-set linkinc=
-set compiles=src\main.c src\essfm.c src\util.c src\buttio_usr.c src\buttio_common.c
+set linkinc=-I%buttiolocation%\src\ -L%buttiolocation%\bin\
+set linkinc=%linkinc% -lbuttio
+set compiles=src\main.c src\essfm.c src\util.c
 set errlog=.\essmidi_err.log
 
+xcopy "%buttiolocation%\bin\buttio.sys" .\bin\ /c /Y
 del .\bin\essmidi.exe
 gcc -o .\bin\essmidi.exe %compiles% %opts% %linkinc% 2> %errlog%
 

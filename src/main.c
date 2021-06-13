@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
     printf("FM port %X\n", fmConfig.port);
     
     if (buttio_init(&fmConfig.ioHand, NULL, BUTTIO_MET_IOPM)) return 1;
-    
+    SleepEx(2000, 1);
     buttio_shutdown(&fmConfig.ioHand);
     
     return 0;
