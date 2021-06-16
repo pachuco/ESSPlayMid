@@ -130,3 +130,36 @@ USHORT NATV_table2[49] = {
     1448, 1534, 1625, 1722, 1825, 1933, 2048, 2170, 2299, 2435,
     2580, 2734, 2896, 3069, 3251, 3444, 3649, 3866, 4096,
 };
+char  pmask_MidiPitchBend[8] = {
+    16, 32, 64, 128,
+    0,  0,  0,  0
+};
+int td_adjust_setup_operator[12] = {
+    256, 242, 228, 215, 203, 192,
+    181, 171, 161, 152, 144, 136
+};
+char gbVelocityAtten[32] = {
+    40, 36, 32, 28, 23, 21, 19, 17,
+    15, 14, 13, 12, 11, 10, 9,  8,
+    7,  6,  5,  5,  4,  4,  3,  3,
+    2,  2,  1,  1,  1,  0,  0,  0
+};
+SHORT fnum[12] = {
+    514, 544, 577, 611,
+    647, 686, 727, 770,
+    816, 864, 916, 970
+};
+
+char  pan_mask[16]          = {0};
+char  gbVelLevel[16]        = {0};
+char  gbChanAtten[16]       = {0};
+SHORT giBend[16]            = {0};
+DWORD hold_table[4]         = {0};
+DWORD gbChanVolume[4]       = {0};
+char program_table[16]      = {0};
+DWORD gbChanExpr[4]         = {0};
+DWORD gbChanBendRange[4]    = {0};
+
+SHORT NATV_CalcBend(USHORT a1, USHORT iBend, USHORT a3) {
+    //!WARN iBend is int16 in OPL midi driver sample
+}
