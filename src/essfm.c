@@ -162,4 +162,11 @@ DWORD gbChanBendRange[4]    = {0};
 
 SHORT NATV_CalcBend(USHORT a1, USHORT iBend, USHORT a3) {
     //!WARN iBend is int16 in OPL midi driver sample
+    if ( iBend == 0x2000 ) {
+        return a1 & 0xFF;
+    } else {
+        if ( iBend >= 0x3F80 ) iBend = 0x4000;
+        int v5 = (a3 * (iBend - 0x2000) >> 5) + 0x1800;
+        return (a1 * (USHORT)((NATV_table1[(v5>>2)&0x3F] * NATV_table2[v5>>8]) >> 10) + 512) >> 10;
+    }
 }
