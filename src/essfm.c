@@ -8,6 +8,7 @@
 #define READ_PORT_UCHAR(CONF, PORT,  PDATA) buttio_ru8(&(CONF)->ioHand, (CONF)->port + (PORT), PDATA)
 #define WRITE_PORT_UCHAR(CONF, PORT, DATA)  buttio_wu8(&(CONF)->ioHand, (CONF)->port + (PORT), DATA)
 
+char FMRegs[608] = {0}; //!WARN FMREGLENGTH is 595
 
 //not very accurate
 void QPCuWait(DWORD uSecTime) { //KeStallExecutionProcessor
@@ -69,28 +70,44 @@ void synthMidiSendFM(FmConfig* fmConf, USHORT reg, UCHAR data) {
     QPCuWait(23);
 }
 
-/*BOOL synthPresent(PUCHAR base, PUCHAR inbase, BOOL *pIsFired) {
+/*BOOL synthPresent(FmConfig* fmConf, PUCHAR inbase, BOOL *pIsFired) {
+    //!WARN check inbase usage
     UCHAR t1, t2;
 
     if (pIsFired) *pIsFired = FALSE;
 
     // check if the chip is present
-    synthMidiSendFM(base, 4, 0x60);
-    synthMidiSendFM(base, 4, 0x80);
+    synthMidiSendFM(fmConf, 4, 0x60);
+    synthMidiSendFM(fmConf, 4, 0x80);
     READ_PORT_UCHAR(fmConf, inbase, &t1);
-    synthMidiSendFM(base, 2, 0xFF);
-    synthMidiSendFM(base, 4, 0x21);
+    synthMidiSendFM(fmConf, 2, 0xFF);
+    synthMidiSendFM(fmConf, 4, 0x21);
     QPCuWait(200);
 
     if (pIsFired && *pIsFired) return TRUE;
 
     READ_PORT_UCHAR(fmConf, inbase, &t);
-    synthMidiSendFM(base, 4, 0x60);
-    synthMidiSendFM(base, 4, 0x80);
+    synthMidiSendFM(fmConf, 4, 0x60);
+    synthMidiSendFM(fmConf, 4, 0x80);
 
     if (!((t1 & 0xE0) == 0) || !((t2 & 0xE0) == 0xC0)) return FALSE;
 
     return TRUE;
+}*/
+
+/*BOOL SynthMidiIsOpl3(FmConfig* fmConf, BOOLEAN *isFired) {
+  BOOL isOpl3 = 0;
+
+  SynthMidiSendFM(pHw->SynthBase, 0x105, 0);
+  QPCuWait(20);
+  if (SynthPresent(base + 2, base, isFired) ) {
+    SynthMidiSendFM(base, 0x105, 1);
+    QPCuWait(20);
+    if (!SynthPresent(base + 2, base, isFired) ) isOpl3 = 1;
+  }
+  SynthMidiSendFM(base, 0x105, 0);
+  QPCuWait(20);
+  return isOpl3;
 }*/
 
 void synthMidiQuiet(FmConfig* fmConf) {
