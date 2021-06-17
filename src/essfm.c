@@ -2,14 +2,6 @@
 #include "essfm.h"
 #include "buttio.h"
 
-////////////////////////////////////////////////////////////////////////////////////////////
-//AUDDRIVE.SYS
-
-#define READ_PORT_UCHAR(CONF, PORT,  PDATA) buttio_ru8(&(CONF)->ioHand, (CONF)->port + (PORT), PDATA)
-#define WRITE_PORT_UCHAR(CONF, PORT, DATA)  buttio_wu8(&(CONF)->ioHand, (CONF)->port + (PORT), DATA)
-
-char FMRegs[608] = {0}; //!WARN FMREGLENGTH is 595
-
 //not very accurate
 void QPCuWait(DWORD uSecTime) { //KeStallExecutionProcessor
     static LONGLONG freq=0;
@@ -27,6 +19,16 @@ void QPCuWait(DWORD uSecTime) { //KeStallExecutionProcessor
         //TODO: alternate timing mechanism
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////
+//AUDDRIVE.SYS
+
+#define READ_PORT_UCHAR(CONF, PORT,  PDATA) buttio_ru8(&(CONF)->ioHand, (CONF)->port + (PORT), PDATA)
+#define WRITE_PORT_UCHAR(CONF, PORT, DATA)  buttio_wu8(&(CONF)->ioHand, (CONF)->port + (PORT), DATA)
+
+char FMRegs[608] = {0}; //!WARN FMREGLENGTH is 595
+SHORT Address_SynthMidiData[2] = {0};
+
 
 void synthInitNativeESFM(FmConfig* fmConf) {
     WRITE_PORT_UCHAR(fmConf, 0, 0x00);
@@ -126,6 +128,24 @@ void synthMidiQuiet(FmConfig* fmConf) {
         synthMidiSendFM(fmConf, 0x0B0 + i, 0);
         synthMidiSendFM(fmConf, 0x1B0 + i, 0x00);
     }
+}
+
+void SynthMidiData(FmConfig* fmConf, USHORT address, BYTE data) {
+    //!WARN driver MajorFunction
+
+    //assert(v8 & 3);
+    assert(address >= 0 || address < 4);
+    
+    WRITE_PORT_UCHAR(fmConf, address, data);
+    if ( address == 2 ) {
+        Address_SynthMidiData[0] = data;
+    } else if ( address == 3 ){
+        Address_SynthMidiData[0] |= ((SHORT)data)<<8;
+    } else {
+        FMRegs[Address_SynthMidiData[0]] = data;
+    }
+    //QPCuWait(23u); //OPL2
+    QPCuWait(10u); //OPL3, etc.
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
