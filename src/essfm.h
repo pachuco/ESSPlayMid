@@ -13,9 +13,19 @@ typedef struct {
 
 void QPCuWait(DWORD uSecTime);
 
+
+////////////////////////////////////////////////////////////////////////////////////////////
+//AUDDRIVE.SYS
 void synthInitNativeESFM(FmConfig* fmConf);
 void synthSaveESFM(FmConfig* fmConf);
 void synthRestoreESFM(FmConfig* fmConf);
 void synthMidiSendFM(FmConfig* fmConf, USHORT address, UCHAR data);
 //BOOL synthPresent(PUCHAR base, PUCHAR inbase, BOOL *pIsFired)
 void synthMidiQuiet(FmConfig* fmConf);
+
+////////////////////////////////////////////////////////////////////////////////////////////
+//AUDDRIVE.DLL
+typedef struct {
+    BYTE data[26];
+} Voice;
+static_assert(sizeof(Voice) == 26, "");

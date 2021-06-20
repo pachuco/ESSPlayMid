@@ -194,9 +194,17 @@ char  gbChanAtten[16]       = {0};
 SHORT giBend[16]            = {0};
 DWORD hold_table[4]         = {0};
 DWORD gbChanVolume[4]       = {0};
-char program_table[16]      = {0};
+char  program_table[16]     = {0};
 DWORD gbChanExpr[4]         = {0};
 DWORD gbChanBendRange[4]    = {0};
+//!HINT size: MidiPitchBend(), 26bytes * 18
+//!WARN might be bigger(20 voices; melodic + perc)
+Voice voice_table[18]       = {0};
+
+
+
+
+
 
 SHORT NATV_CalcBend(USHORT a1, USHORT iBend, USHORT a3) {
     //!WARN iBend is int16 in OPL midi driver sample
@@ -207,4 +215,13 @@ SHORT NATV_CalcBend(USHORT a1, USHORT iBend, USHORT a3) {
         int v5 = (a3 * (iBend - 0x2000) >> 5) + 0x1800;
         return (a1 * (USHORT)((NATV_table1[(v5>>2)&0x3F] * NATV_table2[v5>>8]) >> 10) + 512) >> 10;
     }
+}
+
+UINT MidiCalcFAndB(UINT a1, BYTE a2) {
+    while (a1 >= 0x400) {
+        a1 >>= 1;
+        a2++;
+    }
+    if ( a2 > 7 ) a2 = 7;
+    return a1 | (a2 << 10);
 }
