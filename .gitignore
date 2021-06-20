@@ -1,5 +1,9 @@
-*.exe
-*.sys
+/bin/*.exe
+/bin/*.sys
 *.log
 
-/rev/*
+/rev/*.id0
+/rev/*.id1
+/rev/*.id2
+/rev/*.nam
+/rev/*.til
