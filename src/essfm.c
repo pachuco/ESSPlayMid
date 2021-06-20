@@ -135,18 +135,18 @@ void SynthMidiData(FmConfig* fmConf, USHORT address, BYTE data) {
     //!WARN driver MajorFunction
 
     //assert(v8 & 3);
-    assert(address >= 0 || address < 4);
+    assert(address < 4);
     
     WRITE_PORT_UCHAR(fmConf, address, data);
     if ( address == 2 ) {
         Address_SynthMidiData[0] = data;
     } else if ( address == 3 ){
-        Address_SynthMidiData[0] |= ((SHORT)data)<<8;
+        Address_SynthMidiData[0] |= ((SHORT)data)<<8; //!WARN suspicious bitwise assign
     } else {
         FMRegs[Address_SynthMidiData[0]] = data;
     }
-    //QPCuWait(23u); //OPL2
-    QPCuWait(10u); //OPL3, etc.
+    //QPCuWait(23); //OPL2
+    QPCuWait(10); //OPL3, etc.
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
