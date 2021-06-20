@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <assert.h>
 #include "buttio.h"
 
 #define FMREGLENGTH 595

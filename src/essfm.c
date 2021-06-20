@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <assert.h>
 #include "essfm.h"
 #include "buttio.h"
 

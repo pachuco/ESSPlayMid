@@ -5,7 +5,7 @@ call getcomp.bat rosbe
 ::must not contain spaces!
 set buttiolocation=C:\p_files\prog\_proj\CodeCocks\buttio
 
-set opts=-std=c99 -mconsole -Os -s -Wall -Wextra -DNONMMAP_FALLBACK
+set opts=-std=c11 -mconsole -Os -s -Wall -Wextra -DNONMMAP_FALLBACK
 set linkinc=-I%buttiolocation%\src\ -L%buttiolocation%\bin\
 set linkinc=%linkinc% -lbuttio
 set compiles=src\main.c src\essfm.c src\util.c
