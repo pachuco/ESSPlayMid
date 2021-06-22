@@ -5,13 +5,14 @@
 #include "buttio.h"
 #include "essfm.h"
 
+#define CONFNAME "config.ini"
+
 typedef struct {
 	HMIDIIN hmi;
 	MIDIINCAPSA caps;
     UINT index;
 } MidiInDevice;
 
-static const char CONFNAME[] = "config.ini";
 static FmConfig fmConfig = {0};
 
 void getPortConfig(const char* configName, FmConfig* config) {
@@ -43,22 +44,27 @@ void CALLBACK midiCB(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR
 	BYTE status;
 	BYTE data1;
 	BYTE data2;
-
+    
+    (void)hMidiIn;
+    (void)dwParam2;
+    
+    
 	if(wMsg == MIM_DATA){
 		status = (BYTE) ((dwParam1 & 0x000000FF)>>0);
 		data1  = (BYTE) ((dwParam1 & 0x0000FF00)>>8);
 		data2  = (BYTE) ((dwParam1 & 0x00FF0000)>>16);
 		printf("%02x %02x %02x\n", status, data1, data2);
-	} else if(wMsg == MM_MIM_CLOSE){
-		printf("Closing device.\n");
 	} else if(wMsg == MM_MIM_OPEN){
 		printf("Opening device: %i: %s\n", m->index+1, m->caps.szPname);
+	} else if(wMsg == MM_MIM_CLOSE){
+		printf("Closing device.\n");
 	} else {
 		printf("unknown message: %08x\n", wMsg);
 }
 };
 
 int main(int argc, char* argv[]) {
+    
     if (argc != 2) {
         printUsage();
         return 1;
