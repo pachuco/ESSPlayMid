@@ -200,7 +200,9 @@ BYTE  gbChanBendRange[16]   = {0};
 //!HINT size: MidiPitchBend(), 26bytes * 18
 //!WARN might be bigger(20 voices; melodic + perc)
 Voice voice_table[18]       = {0};
+WORD  DeviceData[163]       = {0};
 
+UINT  MidiPosition = 0;
 
 
 
@@ -226,25 +228,49 @@ UINT MidiCalcFAndB(UINT a1, BYTE a2) {
     return a1 | (a2 << 10);
 }
 
+void MidiFlush() {
+  int numberOfBytesWritten; // ecx@0 MAPDST
+
+  //if ( MidiPosition )
+  //  WriteFile(MidiDeviceHandle, DeviceData, 4 * MidiPosition, &numberOfBytesWritten, &WriteOverlapped_S9345);
+  MidiPosition = 0;
+}
+
+int fmwrite(USHORT a1, USHORT a2) {
+  int pos; // eax@3
+
+  if (MidiPosition == 81) MidiFlush();
+  
+  pos = 2 * MidiPosition;
+  DeviceData[pos+0] = 0x38A;
+  DeviceData[pos+1] = a1 & 0xFF;
+  DeviceData[pos+2] = 0x38B;
+  DeviceData[pos+3] = a1 >> 8;
+  DeviceData[pos+4] = 0x389;
+  DeviceData[pos+5] = a2;
+  
+  MidiPosition += 3;
+  return pos * 2;
+}
 
 //notable function list
 /*
     MidiAllNotesOff
-    MidiCalcFAndB
+MidiCalcFAndB
     MidiClose
-    MidiFlush
+MidiFlush
     MidiInit
     MidiMessage
     MidiOpen
     MidiOpenDevice
     MidiPitchBend
     //MidiReset->fmreset
-    NATV_CalcBend
+NATV_CalcBend
     NATV_CalcNewVolume
     NATV_CalcVolume
     find_voice
     fmreset
-    fmwrite
+fmwrite
     hold_controller
     midiSynthCallback
     modSynthMessage
