@@ -8,8 +8,8 @@
 #define CONFNAME "config.ini"
 
 typedef struct {
-	HMIDIIN hmi;
-	MIDIINCAPSA caps;
+    HMIDIIN hmi;
+    MIDIINCAPSA caps;
     UINT index;
 } MidiInDevice;
 
@@ -39,32 +39,31 @@ void printUsage() {
     );
 }
 
+//lazilly copypasted from https://github.com/wjlandryiii/midilog
 void CALLBACK midiCB(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
-	MidiInDevice* m = (MidiInDevice*)dwInstance;
-	BYTE status;
-	BYTE data1;
-	BYTE data2;
+    MidiInDevice* m = (MidiInDevice*)dwInstance;
+    BYTE status;
+    BYTE data1;
+    BYTE data2;
     
     (void)hMidiIn;
     (void)dwParam2;
     
-    
-	if(wMsg == MIM_DATA){
-		status = (BYTE) ((dwParam1 & 0x000000FF)>>0);
-		data1  = (BYTE) ((dwParam1 & 0x0000FF00)>>8);
-		data2  = (BYTE) ((dwParam1 & 0x00FF0000)>>16);
-		printf("%02x %02x %02x\n", status, data1, data2);
-	} else if(wMsg == MM_MIM_OPEN){
-		printf("Opening device: %i: %s\n", m->index+1, m->caps.szPname);
-	} else if(wMsg == MM_MIM_CLOSE){
-		printf("Closing device.\n");
-	} else {
-		printf("unknown message: %08x\n", wMsg);
+    if(wMsg == MIM_DATA){
+        status = (BYTE) ((dwParam1 & 0x000000FF)>>0);
+        data1  = (BYTE) ((dwParam1 & 0x0000FF00)>>8);
+        data2  = (BYTE) ((dwParam1 & 0x00FF0000)>>16);
+        printf("%02x %02x %02x\n", status, data1, data2);
+    } else if(wMsg == MM_MIM_OPEN){
+        printf("Opening device: %i: %s\n", m->index+1, m->caps.szPname);
+    } else if(wMsg == MM_MIM_CLOSE){
+        printf("Closing device.\n");
+    } else {
+        printf("unknown message: %08x\n", wMsg);
 }
 };
 
 int main(int argc, char* argv[]) {
-    
     if (argc != 2) {
         printUsage();
         return 1;
@@ -79,6 +78,7 @@ int main(int argc, char* argv[]) {
         printf("Midi-in devices(%i total):\n", numMidiInDevs);
         for (UINT i=0; i<numMidiInDevs; i++) {
             MIDIINCAPSA midiCaps = {0};
+            
             if (midiInGetDevCapsA(i, &midiCaps, sizeof(MIDIINCAPSA)) == MMSYSERR_NOERROR) {
                 printf("%i: %s\n", i+1, midiCaps.szPname);
             } else {
