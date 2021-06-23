@@ -225,3 +225,34 @@ UINT MidiCalcFAndB(UINT a1, BYTE a2) {
     if ( a2 > 7 ) a2 = 7;
     return a1 | (a2 << 10);
 }
+
+
+//notable function list
+/*
+    MidiAllNotesOff
+    MidiCalcFAndB
+    MidiClose
+    MidiFlush
+    MidiInit
+    MidiMessage
+    MidiOpen
+    MidiOpenDevice
+    MidiPitchBend
+    //MidiReset->fmreset
+    NATV_CalcBend
+    NATV_CalcNewVolume
+    NATV_CalcVolume
+    find_voice
+    fmreset
+    fmwrite
+    hold_controller
+    midiSynthCallback
+    modSynthMessage
+    note_off
+    note_on
+    setup_operator
+    setup_voice
+    steal_voice
+    voice_off
+    voice_on
+*/
