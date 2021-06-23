@@ -97,7 +97,6 @@ int main(int argc, char* argv[]) {
         }
         midev.index = devIndex - 1;
         
-        /*
         getPortConfig(CONFNAME, &fmConfig);
         printf("FM port %X\n", fmConfig.port);
         
@@ -105,7 +104,6 @@ int main(int argc, char* argv[]) {
             printf("BUTTIO init failure!\n");
             return 1;
         }
-        */
         
         errMidi |= midiInGetDevCapsA(midev.index, &midev.caps, sizeof(MIDIINCAPSA));
         errMidi |= midiInOpen(&midev.hmi, midev.index, (DWORD_PTR)&midiCB, (DWORD_PTR)&midev, CALLBACK_FUNCTION);

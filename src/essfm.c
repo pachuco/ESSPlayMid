@@ -188,15 +188,15 @@ SHORT fnum[12] = {
     816, 864, 916, 970
 };
 
-char  pan_mask[16]          = {0};
-char  gbVelLevel[16]        = {0};
-char  gbChanAtten[16]       = {0};
+BYTE  pan_mask[16]          = {0};
+BYTE  gbVelLevel[16]        = {0};
+BYTE  gbChanAtten[16]       = {0};
 SHORT giBend[16]            = {0};
-DWORD hold_table[4]         = {0};
-DWORD gbChanVolume[4]       = {0};
-char  program_table[16]     = {0};
-DWORD gbChanExpr[4]         = {0};
-DWORD gbChanBendRange[4]    = {0};
+BYTE  hold_table[16]        = {0};
+BYTE  gbChanVolume[16]      = {0};
+BYTE  program_table[16]     = {0};
+BYTE  gbChanExpr[16]        = {0};
+BYTE  gbChanBendRange[16]   = {0};
 //!HINT size: MidiPitchBend(), 26bytes * 18
 //!WARN might be bigger(20 voices; melodic + perc)
 Voice voice_table[18]       = {0};
