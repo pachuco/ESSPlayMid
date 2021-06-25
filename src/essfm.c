@@ -200,7 +200,7 @@ BYTE  gbChanBendRange[16]   = {0};
 //!HINT size: MidiPitchBend(), 26bytes * 18
 //!WARN might be bigger(20 voices; melodic + perc)
 Voice voice_table[18]       = {0};
-WORD  DeviceData[163]       = {0};
+WORD  DeviceData[162]       = {0};
 
 UINT  MidiPosition = 0;
 
@@ -236,7 +236,7 @@ void MidiFlush() {
   MidiPosition = 0;
 }
 
-int fmwrite(USHORT a1, USHORT a2) {
+void fmwrite(USHORT a1, USHORT a2) {
   int pos; // eax@3
 
   if (MidiPosition == 81) MidiFlush();
@@ -250,7 +250,23 @@ int fmwrite(USHORT a1, USHORT a2) {
   DeviceData[pos+5] = a2;
   
   MidiPosition += 3;
-  return pos * 2;
+  //return pos * 2;
+}
+
+void hold_controller(int channel, signed int a3) {
+    if ( a3 < 64 ) {
+        hold_table[channel] &= 0xFE;
+        
+        for (UINT i=0; i<18; i++) {
+            Voice* voice = &voice_table[i];
+            
+            if ( voice->flags & 4 ) {
+                if ( voice->channel == channel ) voice_off(i);
+            }
+        }
+    } else {
+        hold_table[channel] |= 1;
+    }
 }
 
 //notable function list
@@ -271,7 +287,7 @@ NATV_CalcBend
     find_voice
     fmreset
 fmwrite
-    hold_controller
+hold_controller
     midiSynthCallback
     modSynthMessage
     note_off
