@@ -297,9 +297,39 @@ void voice_on(signed int voiceNr) {
     }
 }
 
+void fmreset() {
+    //!WARN partial decompile
+    int v0; // eax@1
+    
+    //v0 = MidiPosition;
+    //v0 *= 4;
+    //*(__int16 *)((char *)DeviceData + v0) = 0x38A;
+    //*(__int16 *)((char *)&DeviceData[1] + v0) = 5;
+    //*(__int16 *)((char *)&DeviceData[2] + v0) = 0x389;
+    //*(__int16 *)((char *)&DeviceData[3] + v0) = 0x80;
+    MidiPosition += 2;
+    MidiFlush();
+    for (UINT i=0; i<16; i++) giBend[i] = 0x2000;
+    memset(gbChanBendRange,   0x02, sizeof(gbChanBendRange));
+    memset(hold_table,        0x00, sizeof(hold_table));
+    memset(gbChanExpr,        0x7F, sizeof(gbChanExpr));
+    memset(gbChanVolume,      0x64, sizeof(gbChanVolume));
+    memset(gbChanAtten,       0x04, sizeof(gbChanAtten));
+    memset(pan_mask,          0x30, sizeof(pan_mask));
+    
+    for (UINT i=0; i < 18; i++) {
+        Voice* voice = &voice_table[i];
+        
+        voice->timer = 0;
+        voice->flags = 0;
+    voice = &voice_table;
+    
+    //LOWORD(timer_S9322) = 0;
+}
+
 //notable function list
 /*
-    MidiAllNotesOff
+        MidiAllNotesOff
 MidiCalcFAndB
     MidiClose
 MidiFlush
@@ -308,12 +338,12 @@ MidiFlush
     MidiOpen
     MidiOpenDevice
     MidiPitchBend
-    //MidiReset->fmreset
+//MidiReset->fmreset
 NATV_CalcBend
     NATV_CalcNewVolume
     NATV_CalcVolume
         find_voice
-    fmreset
+fmreset
 fmwrite
 hold_controller
     midiSynthCallback
@@ -324,5 +354,5 @@ note_off
         setup_voice
         steal_voice
     voice_off
-    voice_on
+voice_on
 */
