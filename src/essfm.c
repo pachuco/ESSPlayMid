@@ -253,6 +253,20 @@ void fmwrite(USHORT a1, USHORT a2) {
   //return pos * 2;
 }
 
+void note_off(unsigned __int8 bChannel, char a2) {
+    for (UINT i=0; i<18; i++) {
+        Voice *voice = &voice_table[i];
+        
+        if ((voice->flags & 1) && voice->channel == bChannel && voice->field_5 == a2 ) {
+            if ( hold_table_S9326[bChannel] & 1 ) {
+                voice->flags |= 4;
+            } else {
+                voice_off(i);
+            }
+        }
+    }
+}
+
 void hold_controller(int channel, signed int a3) {
     if ( a3 < 64 ) {
         hold_table[channel] &= 0xFE;
@@ -284,14 +298,14 @@ MidiFlush
 NATV_CalcBend
     NATV_CalcNewVolume
     NATV_CalcVolume
-    find_voice
+        find_voice
     fmreset
 fmwrite
 hold_controller
     midiSynthCallback
     modSynthMessage
     note_off
-    note_on
+        note_on
     setup_operator
     setup_voice
     steal_voice
