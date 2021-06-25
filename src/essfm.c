@@ -283,6 +283,20 @@ void hold_controller(int channel, signed int a3) {
     }
 }
 
+void voice_on(signed int voiceNr) {
+    if ( voiceNr >= 16 ) {
+        if ( voiceNr == 16 ) {
+            fmwrite(0x250u, 1u);
+            fmwrite(0x251u, 1u);
+        } else {
+            fmwrite(0x252u, 1u);
+            fmwrite(0x253u, 1u);
+        }
+    } else {
+        fmwrite(voiceNr + 0x240, 1u);
+    }
+}
+
 //notable function list
 /*
     MidiAllNotesOff
@@ -304,11 +318,11 @@ fmwrite
 hold_controller
     midiSynthCallback
     modSynthMessage
-    note_off
+note_off
         note_on
-    setup_operator
-    setup_voice
-    steal_voice
+        setup_operator
+        setup_voice
+        steal_voice
     voice_off
     voice_on
 */
