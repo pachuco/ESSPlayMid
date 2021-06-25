@@ -309,20 +309,20 @@ void fmreset() {
     //*(__int16 *)((char *)&DeviceData[3] + v0) = 0x80;
     MidiPosition += 2;
     MidiFlush();
-    for (UINT i=0; i<16; i++) giBend[i] = 0x2000;
-    memset(gbChanBendRange,   0x02, sizeof(gbChanBendRange));
-    memset(hold_table,        0x00, sizeof(hold_table));
-    memset(gbChanExpr,        0x7F, sizeof(gbChanExpr));
-    memset(gbChanVolume,      0x64, sizeof(gbChanVolume));
-    memset(gbChanAtten,       0x04, sizeof(gbChanAtten));
-    memset(pan_mask,          0x30, sizeof(pan_mask));
+    for (UINT i=0; i<16; i++) {
+        giBend[i]           = 0x2000;
+        gbChanBendRange[i]  = 0x02;
+        hold_table[i]       = 0x00;
+        gbChanExpr[i]       = 0x7F;
+        gbChanVolume[i]     = 0x64;
+        gbChanAtten[i]      = 0x04;
+        pan_mask[i]         = 0x30;
+    }
     
     for (UINT i=0; i < 18; i++) {
-        Voice* voice = &voice_table[i];
-        
-        voice->timer = 0;
-        voice->flags = 0;
-    voice = &voice_table;
+        voice_table[i]->timer = 0;
+        voice_table[i]->flags = 0;
+    }
     
     //LOWORD(timer_S9322) = 0;
 }
@@ -343,7 +343,7 @@ NATV_CalcBend
     NATV_CalcNewVolume
     NATV_CalcVolume
         find_voice
-fmreset
+    fmreset
 fmwrite
 hold_controller
     midiSynthCallback
