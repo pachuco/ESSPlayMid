@@ -151,6 +151,27 @@ void SynthMidiData(FmConfig* fmConf, USHORT address, BYTE data) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 //AUDDRIVE.DLL
+typedef struct {
+    BYTE    flags1;
+    BYTE    field_1;
+    USHORT  timer;
+    BYTE    channel;
+    BYTE    field_5;
+    BYTE    flags2;
+    BYTE    field_7;
+    USHORT  field_8;
+    BYTE    field_A;
+    BYTE    field_B;
+    BYTE    field_C;
+    BYTE    field_D;
+    BYTE    field_E;
+    BYTE    field_F;
+    BYTE    field_10;
+    BYTE    field_11[4];
+    BYTE    field_15[4];
+    BYTE    field_19;
+} Voice;
+static_assert(sizeof(Voice) == 26, "");
 
 USHORT NATV_table1[64] = {
     1024, 1025, 1026, 1027, 1028, 1029, 1030, 1030, 1031, 1032,
@@ -229,37 +250,37 @@ UINT MidiCalcFAndB(UINT a1, BYTE a2) {
 }
 
 void MidiFlush() {
-  int numberOfBytesWritten; // ecx@0 MAPDST
-
-  //if ( MidiPosition )
-  //  WriteFile(MidiDeviceHandle, DeviceData, 4 * MidiPosition, &numberOfBytesWritten, &WriteOverlapped_S9345);
-  MidiPosition = 0;
+    int numberOfBytesWritten; // ecx@0 MAPDST
+    
+    //if ( MidiPosition )
+    //  WriteFile(MidiDeviceHandle, DeviceData, 4 * MidiPosition, &numberOfBytesWritten, &WriteOverlapped_S9345);
+    MidiPosition = 0;
 }
 
 void fmwrite(USHORT a1, USHORT a2) {
-  int pos; // eax@3
-
-  if (MidiPosition == 81) MidiFlush();
-  
-  pos = 2 * MidiPosition;
-  DeviceData[pos+0] = 0x38A;
-  DeviceData[pos+1] = a1 & 0xFF;
-  DeviceData[pos+2] = 0x38B;
-  DeviceData[pos+3] = a1 >> 8;
-  DeviceData[pos+4] = 0x389;
-  DeviceData[pos+5] = a2;
-  
-  MidiPosition += 3;
-  //return pos * 2;
+    int pos; // eax@3
+    
+    if (MidiPosition == 81) MidiFlush();
+    
+    pos = 2 * MidiPosition;
+    DeviceData[pos+0] = 0x38A;
+    DeviceData[pos+1] = a1 & 0xFF;
+    DeviceData[pos+2] = 0x38B;
+    DeviceData[pos+3] = a1 >> 8;
+    DeviceData[pos+4] = 0x389;
+    DeviceData[pos+5] = a2;
+    
+    MidiPosition += 3;
+    //return pos * 2;
 }
 
 void note_off(unsigned __int8 bChannel, char a2) {
     for (UINT i=0; i<18; i++) {
         Voice *voice = &voice_table[i];
         
-        if ((voice->flags & 1) && voice->channel == bChannel && voice->field_5 == a2 ) {
+        if ((voice->flags1 & 1) && voice->channel == bChannel && voice->field_5 == a2 ) {
             if ( hold_table_S9326[bChannel] & 1 ) {
-                voice->flags |= 4;
+                voice->flags1 |= 4;
             } else {
                 voice_off(i);
             }
@@ -274,7 +295,7 @@ void hold_controller(int channel, signed int a3) {
         for (UINT i=0; i<18; i++) {
             Voice* voice = &voice_table[i];
             
-            if ( voice->flags & 4 ) {
+            if ( voice->flags1 & 4 ) {
                 if ( voice->channel == channel ) voice_off(i);
             }
         }
@@ -303,6 +324,7 @@ void fmreset() {
     
     //v0 = MidiPosition;
     //v0 *= 4;
+    //!WARN FM write
     //*(__int16 *)((char *)DeviceData + v0) = 0x38A;
     //*(__int16 *)((char *)&DeviceData[1] + v0) = 5;
     //*(__int16 *)((char *)&DeviceData[2] + v0) = 0x389;
@@ -321,10 +343,23 @@ void fmreset() {
     
     for (UINT i=0; i < 18; i++) {
         voice_table[i]->timer = 0;
-        voice_table[i]->flags = 0;
+        voice_table[i]->flags1 = 0;
     }
     
     //LOWORD(timer_S9322) = 0;
+}
+
+void NATV_CalcNewVolume(BYTE bChannel) {
+    for (UINT i=1; i < 577; i += 32) {
+        Voice* voice = &voice_table[i];
+        
+        if ((voice->flags & 1) && (voice->channel == bChannel || bChannel == 255)) {
+            for (UINT j=0; j < 4; j++) {
+                fmwrite(i, NATV_CalcVolume(voice->field_15[j], (voice->flags2 & 3), voice->channel));
+                i += 8;
+            }
+        }
+    }
 }
 
 //notable function list
@@ -340,14 +375,14 @@ MidiFlush
     MidiPitchBend
 //MidiReset->fmreset
 NATV_CalcBend
-    NATV_CalcNewVolume
+NATV_CalcNewVolume
     NATV_CalcVolume
         find_voice
-    fmreset
+fmreset
 fmwrite
 hold_controller
     midiSynthCallback
-    modSynthMessage
+        modSynthMessage
 note_off
         note_on
         setup_operator
