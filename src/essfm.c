@@ -159,13 +159,7 @@ typedef struct {
     BYTE    field_5;
     BYTE    flags2;
     BYTE    field_7;
-    USHORT  field_8;
-    BYTE    field_A;
-    BYTE    field_B;
-    BYTE    field_C;
-    BYTE    field_D;
-    BYTE    field_E;
-    BYTE    field_F;
+    USHORT  field_8[4];
     BYTE    field_10;
     BYTE    field_11[4];
     BYTE    field_15[4];
@@ -189,15 +183,14 @@ USHORT NATV_table2[49] = {
     1448, 1534, 1625, 1722, 1825, 1933, 2048, 2170, 2299, 2435,
     2580, 2734, 2896, 3069, 3251, 3444, 3649, 3866, 4096,
 };
-char  pmask_MidiPitchBend[8] = {
-    16, 32, 64, 128,
-    0,  0,  0,  0
+BYTE pmask_MidiPitchBend[4] = {
+    16, 32, 64, 128
 };
 int td_adjust_setup_operator[12] = {
     256, 242, 228, 215, 203, 192,
     181, 171, 161, 152, 144, 136
 };
-char gbVelocityAtten[32] = {
+BYTE gbVelocityAtten[32] = {
     40, 36, 32, 28, 23, 21, 19, 17,
     15, 14, 13, 12, 11, 10, 9,  8,
     7,  6,  5,  5,  4,  4,  3,  3,
@@ -396,6 +389,25 @@ void NATV_CalcNewVolume(BYTE bChannel) {
     }
 }
 
+void MidiPitchBend(BYTE bChannel, int iBend) {
+    for (UINT i=0; i < 18; i++) {
+        Voice* voice = &voice_table[i];
+        
+        if (voice->channel == bChannel && voice->flags1 & 1) {
+            for (UINT j=0; j < 4; j++) {
+                if (pmask_MidiPitchBend & voice->field_10) {
+                    SHORT bnd;
+                    
+                    bnd = NATV_CalcBend(voice->field_8[j], iBend, gbChanBendRange_S9325[bChannel]);
+                    bnd = MidiCalcFAndB(bnd, (voice->field_11[j] >> 2) & 7);
+                    fmwrite(i*32 + j*8 + 5, (voice->field_11[j] & 0xE0) | (bnd>>8));
+                    fmwrite(i*32 + j*8 + 4, bnd & 0xFF);
+                }
+            }
+        }
+    }
+}
+
 //notable function list
 /*
         MidiAllNotesOff
@@ -406,11 +418,11 @@ MidiFlush
     MidiMessage
     MidiOpen
     MidiOpenDevice
-    MidiPitchBend
+MidiPitchBend
 //MidiReset->fmreset
 NATV_CalcBend
 NATV_CalcNewVolume
-    NATV_CalcVolume
+NATV_CalcVolume
         find_voice
 fmreset
 fmwrite
