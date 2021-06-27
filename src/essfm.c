@@ -380,7 +380,7 @@ void NATV_CalcNewVolume(BYTE bChannel) {
     for (UINT i=1; i < 577; i += 32) {
         Voice* voice = &voice_table[i];
         
-        if ((voice->flags & 1) && (voice->channel == bChannel || bChannel == 255)) {
+        if ((voice->flags & 1) && (voice->channel == bChannel || bChannel == 0xFF)) {
             for (UINT j=0; j < 4; j++) {
                 fmwrite(i, NATV_CalcVolume(voice->field_15[j], (voice->flags2 & 3), voice->channel));
                 i += 8;
