@@ -349,6 +349,45 @@ void fmreset() {
     //LOWORD(timer_S9322) = 0;
 }
 
+BYTE NATV_CalcVolume(BYTE a1, BYTE a2, BYTE a3){
+    BYTE vol; // eax@8
+    
+    if ( !gbChanVolume[a3] ) return 0x3F;
+    
+    switch (a2) {
+        case 0:
+            vol = 0;
+            goto LABEL_18;
+            break;
+        case 1:
+            vol = ((0x7F - gbChanVolume[a3]) >> 4) + ((0x7F - gbChanExpr[a3]) >> 4);
+            break;
+        case 2:
+            vol = ((0x7F - gbChanVolume[a3]) >> 3) + ((0x7F - gbChanExpr[a3]) >> 3);
+            break;
+        case 3:
+            vol = a1;
+            goto LABEL_18;
+            break;
+    }
+    
+    if ( gbChanExpr[a3] < 0x40 ) {
+        vol = ((0x3F - gbChanExpr[a3]) >> 1) + 16;
+    } else {
+        vol = ((0x7F - gbChanExpr[a3]) >> 2);
+    }
+    
+    if ( gbChanVolume[a3] >= 0x40 ) {
+        vol += ((0x7F - gbChanVolume[a3]) >> 2);
+    } else {
+        vol += ((0x3F - gbChanVolume[a3]) >> 1) + 16;
+    }
+LABEL_18:
+    vol += (a1 & 0x3F);
+    if ( vol > 0x3F ) vol = 0x3F;
+    return vol | a1 & 0xC0;
+}
+
 void NATV_CalcNewVolume(BYTE bChannel) {
     for (UINT i=1; i < 577; i += 32) {
         Voice* voice = &voice_table[i];
