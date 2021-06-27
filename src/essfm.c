@@ -354,35 +354,30 @@ BYTE NATV_CalcVolume(BYTE a1, BYTE a2, BYTE a3){
     
     if ( !gbChanVolume[a3] ) return 0x3F;
     
-    switch (a2) {
-        case 0:
-            vol = 0;
-            goto LABEL_18;
-            break;
-        case 1:
-            vol = ((0x7F - gbChanVolume[a3]) >> 4) + ((0x7F - gbChanExpr[a3]) >> 4);
-            break;
-        case 2:
-            vol = ((0x7F - gbChanVolume[a3]) >> 3) + ((0x7F - gbChanExpr[a3]) >> 3);
-            break;
-        case 3:
-            vol = a1;
-            goto LABEL_18;
-            break;
+    assert(a2 < 4);
+    if (a2 == 1 || a2 == 2) {
+        switch (a2) {
+            case 1: vol = ((0x7F - gbChanVolume[a3]) >> 4) + ((0x7F - gbChanExpr[a3]) >> 4);
+                break;
+            case 2: vol = ((0x7F - gbChanVolume[a3]) >> 3) + ((0x7F - gbChanExpr[a3]) >> 3);
+                break;
+        }
+        
+        if ( gbChanExpr[a3] < 0x40 ) {
+            vol = ((0x3F - gbChanExpr[a3]) >> 1) + 16;
+        } else {
+            vol = ((0x7F - gbChanExpr[a3]) >> 2);
+        }
+        
+        if ( gbChanVolume[a3] >= 0x40 ) {
+            vol += ((0x7F - gbChanVolume[a3]) >> 2);
+        } else {
+            vol += ((0x3F - gbChanVolume[a3]) >> 1) + 16;
+        }
+    } else {
+        vol = a2 ? a1 : 0;
     }
     
-    if ( gbChanExpr[a3] < 0x40 ) {
-        vol = ((0x3F - gbChanExpr[a3]) >> 1) + 16;
-    } else {
-        vol = ((0x7F - gbChanExpr[a3]) >> 2);
-    }
-    
-    if ( gbChanVolume[a3] >= 0x40 ) {
-        vol += ((0x7F - gbChanVolume[a3]) >> 2);
-    } else {
-        vol += ((0x3F - gbChanVolume[a3]) >> 1) + 16;
-    }
-LABEL_18:
     vol += (a1 & 0x3F);
     if ( vol > 0x3F ) vol = 0x3F;
     return vol | a1 & 0xC0;
