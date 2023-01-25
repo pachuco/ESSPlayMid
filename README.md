@@ -5,4 +5,4 @@ Requires https://github.com/pachuco/buttio driver.
 
 Current status: 
 - I/O driver: ready.
-- Midi player: someday...
+- Midi player: working, x86 asm, rough cut
