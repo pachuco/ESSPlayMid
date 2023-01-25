@@ -1,4 +1,5 @@
 /bin/*.exe
+/bin/*.obj
 /bin/*.sys
 *.log
 

@@ -1,6 +1,10 @@
 @echo off
 
-call getcomp.bat rosbe
+call getcomp.bat gcc12
+set path=%path%;G:\p_files\rtdk\WDDK\7600\bin\x86
+
+ml /coff /c src\esfm.asm
+move /y esfm.obj bin\
 
 ::must not contain spaces!
 set buttiolocation=C:\p_files\prog\_proj\CodeCocks\buttio
@@ -8,10 +12,10 @@ set buttiolocation=C:\p_files\prog\_proj\CodeCocks\buttio
 set opts=-std=c11 -mconsole -Os -s -Wall -Wextra -DNONMMAP_FALLBACK
 set linkinc=-I%buttiolocation%\src\ -L%buttiolocation%\bin\
 set linkinc=%linkinc% -lwinmm -lbuttio
-set compiles=src\main.c src\essfm.c src\util.c
+set compiles=bin\esfm.obj src\main.c src\esfm.c src\util.c
 set errlog=.\essmidi_err.log
 
-xcopy "%buttiolocation%\bin\buttio.sys" .\bin\ /c /Y
+rem xcopy "%buttiolocation%\bin\buttio.sys" .\bin\ /c /Y
 del .\bin\essmidi.exe
 gcc -o .\bin\essmidi.exe %compiles% %opts% %linkinc% 2> %errlog%
 

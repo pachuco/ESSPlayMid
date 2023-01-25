@@ -23,3 +23,37 @@ void util_getParentPathA(char* inout) {
         }
     }
 }
+
+int getFileSize(FILE* f) {
+    int origPos = ftell(f);
+    int size;
+    
+    fseek(f, 0, SEEK_END);
+    size = ftell(f);
+    fseek(f, origPos, SEEK_SET);
+    return size;
+}
+
+BOOL loadFile(PCHAR path, BYTE** ppOut, int* pSizeOut) {
+    FILE* fin = NULL;
+    BYTE* pDat = 0;
+    int size = -1;
+    
+    if (!(fin = fopen(path, "rb"))) goto lErr;
+    size = getFileSize(fin);
+    
+    if (!(pDat = malloc(size))) goto lErr;
+    fread(pDat, size, 1, fin);
+    
+    *ppOut = pDat;
+    *pSizeOut = size;
+    fclose(fin);
+    return TRUE;
+    
+    lErr:
+    if (fin)  fclose(fin);
+    if (pDat) free(pDat);
+    *ppOut = NULL;
+    *pSizeOut = -1;
+    return FALSE;
+}

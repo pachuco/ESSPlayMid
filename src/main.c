@@ -3,9 +3,11 @@
 #include <conio.h>
 #include "util.h"
 #include "buttio.h"
-#include "essfm.h"
+#include "esfm.h"
 
-#define CONFNAME "config.ini"
+
+
+
 
 typedef struct {
     HMIDIIN hmi;
@@ -13,9 +15,7 @@ typedef struct {
     UINT index;
 } MidiInDevice;
 
-static FmConfig fmConfig = {0};
-
-void getPortConfig(const char* configName, FmConfig* config) {
+USHORT getPortConfig(const char* configName) {
     char configPath[MAX_PATH];
     char configPortText[16];
     
@@ -25,7 +25,7 @@ void getPortConfig(const char* configName, FmConfig* config) {
     
     /**/GetPrivateProfileString("essconfig", "port", "0x0000", configPortText, sizeof(configPortText), configPath);
     
-    config->port = (USHORT)strtol(configPortText, NULL, 0);
+    return (USHORT)strtol(configPortText, NULL, 0);
 }
 
 void printUsage() {
@@ -53,7 +53,9 @@ void CALLBACK midiCB(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR
         status = (BYTE) ((dwParam1 & 0x000000FF)>>0);
         data1  = (BYTE) ((dwParam1 & 0x0000FF00)>>8);
         data2  = (BYTE) ((dwParam1 & 0x00FF0000)>>16);
-        printf("%02x %02x %02x\n", status, data1, data2);
+        //printf("%02x %02x %02x\n", status, data1, data2);
+        
+        esfm_midiShort(dwParam1);
     } else if(wMsg == MM_MIM_OPEN){
         printf("Opening device: %i: %s\n", m->index+1, m->caps.szPname);
     } else if(wMsg == MM_MIM_CLOSE){
@@ -90,6 +92,7 @@ int main(int argc, char* argv[]) {
         UINT devIndex = strtol(argv[1], NULL, 10);
         MidiInDevice midev = {0};
         UINT errMidi = 0;
+        USHORT fmPort;
         
         if (!devIndex) {
             printUsage();
@@ -97,11 +100,15 @@ int main(int argc, char* argv[]) {
         }
         midev.index = devIndex - 1;
         
-        getPortConfig(CONFNAME, &fmConfig);
-        printf("FM port %X\n", fmConfig.port);
+        fmPort = getPortConfig("config.ini");
+        if (fmPort == 0) {
+            printf("Config read failure!\n");
+            return 1;
+        }
+        printf("FM port %X\n", fmPort);
         
-        if (!buttio_init(&fmConfig.ioHand, NULL, BUTTIO_MET_IOPM)) {
-            printf("BUTTIO init failure!\n");
+        if (!esfm_init(fmPort)) {
+            printf("ESFM init failure!\n");
             return 1;
         }
         
@@ -110,7 +117,7 @@ int main(int argc, char* argv[]) {
         errMidi |= midiInStart(midev.hmi);
         if (errMidi) {
             printf("Midi-in init error!\n");
-            buttio_shutdown(&fmConfig.ioHand);
+            esfm_shutdown();
             return 1;
         };
         
@@ -128,7 +135,7 @@ int main(int argc, char* argv[]) {
     }
     
     SleepEx(2000, 1);
-    buttio_shutdown(&fmConfig.ioHand);
+    esfm_shutdown();
     
     return 0;
 }

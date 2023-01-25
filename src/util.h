@@ -1,4 +1,5 @@
 #pragma once
+#include <stdio.h>
 #include <windows.h>
 
 #define DEFFUN_OBJ(_HMOD, _ERR, _FNAME) __typeof__(_FNAME) *pf##_FNAME = NULL
@@ -34,5 +35,8 @@ BOOL init() {
 
 #define COUNTOF(_ARR) (sizeof(_ARR) / sizeof(_ARR[0]))
 
-void util_dPrintfA(const CHAR* fmt, ...);
+void dPrintfA(const CHAR* fmt, ...);
 void util_getParentPathA(char* out);
+
+int getFileSize(FILE* f);
+BOOL loadFile(PCHAR path, BYTE** ppOut, int* pSizeOut);
