@@ -10,11 +10,15 @@ extern __stdcall void MidiMessage(DWORD dwData);
 extern __stdcall void fmreset();
 extern __stdcall void MidiAllNotesOff();
 
-
-#define MAXBANKS 16
-static BYTE* bankArr[MAXBANKS] = {NULL};
 static USHORT fmBase = 0;
 static IOHandler ioHand = {0};
+
+static InstrBank bankArr[] = {
+        {"bnk_01.bin", "Win 3.1 and 2000+ drivers.", NULL},
+        {"bnk_02.bin", "NT4 driver, maybe ?win9x", NULL},
+};
+static int curBank = 0;
+
 
 
 
@@ -112,64 +116,40 @@ void FM_stopSynth() {
 
 
 BOOL esfm_init(USHORT port) {
+    assert(COUNTOF(bankArr) >= 1);
+    for (int i=0; i < COUNTOF(bankArr); i++) {
+        int size;
+        
+        if (loadFile(bankArr[i].name, &bankArr[i].pData, &size)) {
+            assert(size == BANKLEN);
+            assert(bankArr[i].pData != NULL);
+        }
+    }
+    gBankMem = bankArr[0].pData;
+    curBank = 0;
     
     if (!buttio_init(&ioHand, NULL, BUTTIO_MET_DRIVERCALL)) return FALSE;
-    
     iopm_fillRange(&ioHand.iopm, port, port+0xF, TRUE);
     buttio_flushIOPMChanges(&ioHand);
     fmBase = port;
     
-    
-    
-    static char* bankNames[] = {
-        "bnk_01.bin",
-        "bnk_02.bin",
-    };
-    
-    int curBankNr = 0;
-    for (int i=0; i < COUNTOF(bankNames); i++) {
-        BYTE* pDat;
-        int size;
-        
-        if (loadFile(bankNames[i], &pDat, &size)) {
-            assert(size == BANKLEN);
-            bankArr[curBankNr++] = pDat;
-        }
-    }
-    
-    if (curBankNr == 0) return FALSE;
-    
-  
-    
-    
-    gBankMem = bankArr[0];
     FM_startSynth();
     fmreset();
     
     return TRUE;
 }
 
+InstrBank* esfm_switchBank() {
+    if (COUNTOF(bankArr) == 1) return &bankArr[0];
+    curBank = (curBank + 1) % COUNTOF(bankArr);
+    gBankMem = bankArr[curBank].pData;
+    
+    return &bankArr[curBank];
+}
+
 void esfm_shutdown() {
     FM_stopSynth();
     buttio_shutdown(&ioHand);
-}
-
-
-BYTE* esfm_switchBank() {
-    BYTE* pDat = NULL;
-    
-    for (int i=0; i < MAXBANKS; i++) {
-        if (bankArr[i] == gBankMem) {
-            i = (i+1)%MAXBANKS;
-            if (bankArr[i] == NULL) {
-                i = 0;
-            }
-            pDat = bankArr[i];
-            break;
-        }
-    }
-    if (pDat) gBankMem = pDat;
-    return pDat;
 }
 
 void esfm_midiShort(DWORD dwData) {

@@ -121,11 +121,22 @@ int main(int argc, char* argv[]) {
             return 1;
         };
         
-        while(1) {
+        BOOL isRunning = TRUE;
+        while(isRunning) {
             if (kbhit()) {
                 unsigned char c = _getch();
                 
-                if (c == 0x1B) break; //ESCAPE
+                switch (c) {
+                    case VK_SPACE: {
+                        InstrBank* pBank = esfm_switchBank();
+                        
+                        printf("Bank switch: \"%s\", %s\n", pBank->name, pBank->description);
+                        }break;
+                    case VK_ESCAPE: {
+                        isRunning = FALSE;
+                        }break;
+                    default:
+                }
             }
             SleepEx(50, TRUE);
         }
