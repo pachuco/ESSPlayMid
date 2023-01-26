@@ -28,7 +28,7 @@ void QPCuWait(DWORD uSecTime) { //KeStallExecutionProcessor
         wait = ((LONGLONG)uSecTime * freq)/(LONGLONG)1000000;
         QueryPerformanceCounter((PLARGE_INTEGER)&start);
         while (cur < (start + wait)) {
-            __asm__("pause");
+            //__asm__("pause");
             QueryPerformanceCounter((PLARGE_INTEGER)&cur);
         }
     } else {
@@ -48,11 +48,11 @@ enum {
 };
 int __stdcall fmwrite231(USHORT index, USHORT data) {
     buttio_wu8(&ioHand, fmBase+2, index);
-    QPCuWait(25);
+    //QPCuWait(25);
     buttio_wu8(&ioHand, fmBase+3, index>>8);
-    QPCuWait(25);
+    QPCuWait(10);
     buttio_wu8(&ioHand, fmBase+1, data);
-    QPCuWait(25);
+    QPCuWait(10);
     //2 index
     //3 index>>8
     //1 data
@@ -62,9 +62,9 @@ int __stdcall fmwrite231(USHORT index, USHORT data) {
 
 int __stdcall fmwrite21(USHORT index, USHORT data) {
     buttio_wu8(&ioHand, fmBase+2, index);
-    QPCuWait(25);
+    QPCuWait(10);
     buttio_wu8(&ioHand, fmBase+1, data);
-    QPCuWait(25);
+    QPCuWait(10);
     //2 index
     //1 data
     //dPrintfA("esfm a1:%X a2:%X\n", a1, a2);
@@ -75,7 +75,7 @@ int __stdcall fmwrite21(USHORT index, USHORT data) {
 
 
 
-#define IO_write8(PORT, DATA) buttio_wu8(&ioHand, fmBase+PORT, DATA); QPCuWait(25)
+#define IO_write8(PORT, DATA) buttio_wu8(&ioHand, fmBase+PORT, DATA); QPCuWait(10)
 void FM_startSynth() {
     //these are probably not right
     IO_write8(0x04, 72);
