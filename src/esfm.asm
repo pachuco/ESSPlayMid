@@ -3,7 +3,25 @@
 .model flat
 
 ; export
+public _gBankMem
 
+public _MidiMessage@4
+public _MidiPitchBend@8
+public _MidiCalcFAndB@8
+public _NATV_CalcVolume@12
+public _NATV_CalcNewVolume@4
+public _NATV_CalcBend@12
+public _voice_off@4
+public _note_off@8
+public _note_on@12
+public _setup_voice@20
+public _find_voice@16
+public _steal_voice@4
+public _setup_operator@36
+public _voice_on@4
+public _hold_controller@8
+public _fmreset@0
+public _MidiAllNotesOff@0
 
 ; import
 EXTRN _fmwrite231@8 :PROC
@@ -33,7 +51,6 @@ EXTRN _fmwrite21@8 :PROC
 
 
 ; void __stdcall MidiMessage(DWORD dwData)
-        public _MidiMessage@4
 _MidiMessage@4  proc near       ; CODE XREF: modSynthMessage(x,x,x,x,x)+111p
                     ; modSynthMessage(x,x,x,x,x)+1A3p ...
 
@@ -334,7 +351,6 @@ _MidiMessage@4  endp
 
 
 ; void __stdcall MidiPitchBend(BYTE bChannel, int iBend)
-        public _MidiPitchBend@8
 _MidiPitchBend@8 proc near      ; CODE XREF: MidiMessage(x)+66p
 
 var_1C      = dword ptr -1Ch
@@ -440,7 +456,6 @@ _MidiPitchBend@8 endp
 
 
 ; __stdcall MidiCalcFAndB(x, x)
-        public _MidiCalcFAndB@8
 _MidiCalcFAndB@8 proc near      ; CODE XREF: setup_operator(x,x,x,x,x,x,x,x,x)+200p
                     ; MidiPitchBend(x,x)+8Ap
 
@@ -479,7 +494,6 @@ _MidiCalcFAndB@8 endp
 
 
 ; BYTE __stdcall NATV_CalcVolume(BYTE a1, BYTE a2, BYTE a3)
-        public _NATV_CalcVolume@12
 _NATV_CalcVolume@12 proc near       ; CODE XREF: setup_operator(x,x,x,x,x,x,x,x,x)+137p
                     ; NATV_CalcNewVolume(x)+43p
 
@@ -609,7 +623,6 @@ _NATV_CalcVolume@12 endp
 
 
 ; void __stdcall NATV_CalcNewVolume(BYTE bChannel)
-        public _NATV_CalcNewVolume@4
 _NATV_CalcNewVolume@4 proc near     ; CODE XREF: MidiMessage(x)+107p
 
 a3      = byte ptr -8
@@ -679,7 +692,6 @@ _NATV_CalcNewVolume@4 endp
 
 
 ; __int16 __stdcall NATV_CalcBend(USHORT a1, USHORT iBend, USHORT a3)
-        public _NATV_CalcBend@12
 _NATV_CalcBend@12 proc near     ; CODE XREF: setup_operator(x,x,x,x,x,x,x,x,x)+1F4p
                     ; MidiPitchBend(x,x)+76p
 
@@ -859,7 +871,6 @@ _NATV_CalcBend@12 endp
 
 
 ; void __stdcall voice_off(signed int a2)
-        public _voice_off@4
 _voice_off@4    proc near       ; CODE XREF: note_off(x,x)+35p
                     ; find_voice(x,x,x,x)+3Ap ...
 
@@ -955,7 +966,6 @@ _voice_off@4    endp
 
 
 ; void __stdcall note_off(unsigned __int8 bChannel, char a2)
-        public _note_off@8
 _note_off@8 proc near       ; CODE XREF: MidiAllNotesOff()+Dp
                     ; MidiMessage(x)+297p
 
@@ -1008,7 +1018,6 @@ _note_off@8 endp
 
 
 ; char *__stdcall note_on(unsigned __int8 channel, unsigned __int8 a2, unsigned __int8 a3)
-        public _note_on@12
 _note_on@12 proc near       ; CODE XREF: MidiMessage(x)+28Ap
 
 a2      = dword ptr -4
@@ -1217,7 +1226,6 @@ _note_on@12 endp
 
 
 ; void __stdcall setup_voice(int voiceNr, int a3, int a6, int a1, signed int a2)
-        public _setup_voice@20
 _setup_voice@20 proc near       ; CODE XREF: note_on(x,x,x)+D4p
                     ; note_on(x,x,x)+E8p ...
 
@@ -1336,7 +1344,6 @@ _setup_voice@20 endp
 
 
 ; int __stdcall find_voice(int a1, int a2, int channel, int a4)
-        public _find_voice@16
 _find_voice@16  proc near       ; CODE XREF: note_on(x,x,x)+7Dp
                     ; note_on(x,x,x)+11Ap ...
 
@@ -1508,7 +1515,6 @@ _find_voice@16  endp
 
 
 ; int __stdcall steal_voice(int a1)
-        public _steal_voice@4
 _steal_voice@4  proc near       ; CODE XREF: note_on(x,x,x)+9Bp
                     ; note_on(x,x,x)+BAp ...
 
@@ -1606,7 +1612,6 @@ _steal_voice@4  endp
 
 
 ; int __stdcall setup_operator(DWORD a1, int a2, signed int a3, signed int a4, int a5, int a6, int a7, int a8, int voiceNr)
-        public _setup_operator@36
 _setup_operator@36 proc near        ; CODE XREF: setup_voice(x,x,x,x,x)+49p
                     ; setup_voice(x,x,x,x,x)+74p ...
 
@@ -1910,7 +1915,6 @@ _setup_operator@36 endp
 
 
 ; void __stdcall voice_on(signed int voiceNr)
-        public _voice_on@4
 _voice_on@4 proc near       ; CODE XREF: note_on(x,x,x)+F3p
                     ; note_on(x,x,x)+189p ...
 
@@ -1953,7 +1957,6 @@ _voice_on@4 endp
 
 
 ; void __stdcall hold_controller(int a2, signed int a3)
-        public _hold_controller@8
 _hold_controller@8 proc near        ; CODE XREF: MidiMessage(x)+139p
 
 a2      = dword ptr  4
@@ -2004,7 +2007,6 @@ _hold_controller@8 endp
 
 
 ; void __stdcall fmreset()
-        public _fmreset@0
 _fmreset@0  proc near       ; CODE XREF: MidiOpenDevice(x,x)+50p
                     ; MidiOpen()+10p ...
 ;       mov eax, _MidiPosition
@@ -2080,7 +2082,6 @@ _fmreset@0  endp
 
 
 ; void __stdcall MidiAllNotesOff()
-        public _MidiAllNotesOff@0
 _MidiAllNotesOff@0 proc near        ; CODE XREF: MidiClose()+9p
         push    esi
         mov esi, offset _voice_table.field_5
@@ -2205,7 +2206,6 @@ _?pmask@?1??MidiPitchBend@@9@9$S9573 db 16, 32, 64, 128, 0, 0, 0, 0
 
 _voice_table    Voice 18+2 dup(<0>)
 
-public _gBankMem
 ; BYTE *_gBankMem
 _gBankMem   dd 0
 
