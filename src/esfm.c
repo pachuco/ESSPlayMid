@@ -120,7 +120,7 @@ BOOL esfm_init(USHORT port) {
     for (int i=0; i < COUNTOF(bankArr); i++) {
         int size;
         
-        if (loadFile(bankArr[i].name, &bankArr[i].pData, &size)) {
+        if (loadFile(bankArr[i].fileName, &bankArr[i].pData, &size)) {
             assert(size == BANKLEN);
             assert(bankArr[i].pData != NULL);
         }

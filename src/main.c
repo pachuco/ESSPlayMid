@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
                     case VK_SPACE: {
                         InstrBank* pBank = esfm_switchBank();
                         
-                        printf("Bank switch: \"%s\", %s\n", pBank->name, pBank->description);
+                        printf("Bank switch: \"%s\", %s\n", pBank->fileName, pBank->description);
                         }break;
                     case VK_ESCAPE: {
                         isRunning = FALSE;

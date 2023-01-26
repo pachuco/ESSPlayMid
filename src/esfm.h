@@ -3,8 +3,8 @@
 
 #define BANKLEN 8288
 typedef struct {
-    char name[32];
-    char description[62];
+    char fileName[32];
+    char description[64];
     BYTE* pData;
 } InstrBank;
 
