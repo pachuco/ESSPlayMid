@@ -100,7 +100,7 @@ dwData      = dword ptr  8
 
 loc_6BC06EFA:               ; CODE XREF: MidiMessage(x)+4Aj
         movzx   eax, bl
-        mov _program_table$S9323[eax], cl
+        mov _program_table[eax], cl
         jmp loc_6BC07126
 ; ---------------------------------------------------------------------------
 
@@ -122,7 +122,7 @@ loc_6BC06F08:               ; CODE XREF: MidiMessage(x)+45j
         jnz loc_6BC07126
         movzx   ecx, bl
         and al, 7Fh
-        mov _gbChanExpr$S9340[ecx], al
+        mov _gbChanExpr[ecx], al
         jmp short loc_6BC06F8E
 ; ---------------------------------------------------------------------------
 
@@ -131,7 +131,7 @@ loc_6BC06F3D:               ; CODE XREF: MidiMessage(x)+99j
         cmp al, 50h ; 'P'
         jbe short loc_6BC06F50
         movzx   eax, bl
-        mov _pan_mask$S9324[eax], 20h ; ' '
+        mov _pan_mask[eax], 20h ; ' '
         jmp loc_6BC07126
 ; ---------------------------------------------------------------------------
 
@@ -139,12 +139,12 @@ loc_6BC06F50:               ; CODE XREF: MidiMessage(x)+B5j
         cmp al, 30h ; '0'
         movzx   eax, bl
         jnb short loc_6BC06F63
-        mov _pan_mask$S9324[eax], 10h
+        mov _pan_mask[eax], 10h
         jmp loc_6BC07126
 ; ---------------------------------------------------------------------------
 
 loc_6BC06F63:               ; CODE XREF: MidiMessage(x)+CBj
-        mov _pan_mask$S9324[eax], 30h ; '0'
+        mov _pan_mask[eax], 30h ; '0'
         jmp loc_6BC07126
 ; ---------------------------------------------------------------------------
 
@@ -154,9 +154,9 @@ loc_6BC06F6F:               ; CODE XREF: MidiMessage(x)+96j
         movzx   ecx, bl
         and edx, 1Fh
         and al, 7Fh
-        mov _gbChanVolume$S9339[ecx], al
-        mov dl, _gbVelocityAtten$S9329[edx]
-        mov _gbChanAtten$S9338[ecx], dl
+        mov _gbChanVolume[ecx], al
+        mov dl, _gbVelocityAtten[edx]
+        mov _gbChanAtten[ecx], dl
 
 loc_6BC06F8E:               ; CODE XREF: MidiMessage(x)+B1j
         push    [ebp+dwData]    ; bChannel
@@ -166,11 +166,11 @@ loc_6BC06F8E:               ; CODE XREF: MidiMessage(x)+B1j
 
 loc_6BC06F9B:               ; CODE XREF: MidiMessage(x)+93j
         movzx   ecx, bl
-        mov dl, _hold_table$S9326[ecx]
+        mov dl, _hold_table[ecx]
         and dl, 6
         cmp dl, 6
         jnz loc_6BC07126
-        mov byte ptr _gbChanBendRange$S9325[ecx], al
+        mov byte ptr _gbChanBendRange[ecx], al
         jmp loc_6BC07126
 ; ---------------------------------------------------------------------------
 
@@ -198,7 +198,7 @@ loc_6BC06FCD:               ; CODE XREF: MidiMessage(x)+84j
         test    al, al
         movzx   eax, bl
         jnz short loc_6BC0700F
-        or  _hold_table$S9326[eax], 4
+        or  _hold_table[eax], 4
         jmp loc_6BC07126
 ; ---------------------------------------------------------------------------
 
@@ -206,7 +206,7 @@ loc_6BC06FF9:               ; CODE XREF: MidiMessage(x)+153j
         test    al, al
         movzx   eax, bl
         jnz short loc_6BC0701E
-        or  _hold_table$S9326[eax], 2
+        or  _hold_table[eax], 2
         jmp loc_6BC07126
 ; ---------------------------------------------------------------------------
 
@@ -214,7 +214,7 @@ loc_6BC0700C:               ; CODE XREF: MidiMessage(x)+150j
         movzx   eax, bl
 
 loc_6BC0700F:               ; CODE XREF: MidiMessage(x)+161j
-        and _hold_table$S9326[eax], 0FBh
+        and _hold_table[eax], 0FBh
         jmp loc_6BC07126
 ; ---------------------------------------------------------------------------
 
@@ -222,7 +222,7 @@ loc_6BC0701B:               ; CODE XREF: MidiMessage(x)+14Dj
         movzx   eax, bl
 
 loc_6BC0701E:               ; CODE XREF: MidiMessage(x)+174j
-        and _hold_table$S9326[eax], 0FDh
+        and _hold_table[eax], 0FDh
         jmp loc_6BC07126
 ; ---------------------------------------------------------------------------
 
@@ -288,7 +288,7 @@ loc_6BC0708D:               ; CODE XREF: MidiMessage(x)+1F2j
 
 loc_6BC0709E:               ; CODE XREF: MidiMessage(x)+1A3j
         movzx   esi, bl
-        test    _hold_table$S9326[esi], 1
+        test    _hold_table[esi], 1
         jz  short loc_6BC070D8
         and [ebp+dwData], 0
         mov edi, offset _voice_table
@@ -312,12 +312,12 @@ loc_6BC070CA:               ; CODE XREF: MidiMessage(x)+22Dj
         jl  short loc_6BC070B3
 
 loc_6BC070D8:               ; CODE XREF: MidiMessage(x)+21Ej
-        and _hold_table$S9326[esi], 0FEh
-        mov _gbChanVolume$S9339[esi], 64h ; 'd'
-        mov _gbChanExpr$S9340[esi], 7Fh ; ''
-        mov _giBend$S9327[esi*2], 2000h
-        mov _pan_mask$S9324[esi], 30h ; '0'
-        mov byte ptr _gbChanBendRange$S9325[esi], 2
+        and _hold_table[esi], 0FEh
+        mov _gbChanVolume[esi], 64h ; 'd'
+        mov _gbChanExpr[esi], 7Fh ; ''
+        mov _giBend[esi*2], 2000h
+        mov _pan_mask[esi], 30h ; '0'
+        mov byte ptr _gbChanBendRange[esi], 2
         jmp short loc_6BC07126
 ; ---------------------------------------------------------------------------
 
@@ -374,7 +374,7 @@ iBend       = dword ptr  0Ch
         push    esi
         mov esi, offset _voice_table
         push    edi
-        mov _giBend$S9327[ebx*2], ax
+        mov _giBend[ebx*2], ax
         mov [ebp+var_C], esi
         mov [ebp+i], 12h
 
@@ -389,10 +389,10 @@ loc_6BC06C84:               ; CODE XREF: MidiPitchBend(x,x)+ECj
         mov [ebp+var_4], edi
 
 loc_6BC06CA5:               ; CODE XREF: MidiPitchBend(x,x)+D5j
-        mov al, _?pmask@?1??MidiPitchBend@@9@9$S9573[edi]
+        mov al, _pmask__MidiPitchBend[edi]
         test    [esi+10h], al
         jnz short loc_6BC06D21
-        movzx   ax, byte ptr _gbChanBendRange$S9325[ebx]
+        movzx   ax, byte ptr _gbChanBendRange[ebx]
         push    eax     ; a3
         mov eax, [ebp+var_8]
         push    [ebp+iBend] ; iBend
@@ -504,7 +504,7 @@ a3      = byte ptr  10h
         push    ebp
         mov ebp, esp
         movzx   eax, [ebp+a3]
-        mov dl, _gbChanVolume$S9339[eax]
+        mov dl, _gbChanVolume[eax]
         test    dl, dl
         jnz short loc_6BC06D66
         mov al, 3Fh ; '?'
@@ -521,7 +521,7 @@ loc_6BC06D66:               ; CODE XREF: NATV_CalcVolume(x,x,x)+Fj
         jz  short loc_6BC06DBB
         dec ecx
         jnz short loc_6BC06DF9
-        mov al, _gbChanExpr$S9340[eax]
+        mov al, _gbChanExpr[eax]
         cmp al, 40h ; '@'
         movzx   ecx, al
         jb  short loc_6BC06D92
@@ -560,7 +560,7 @@ loc_6BC06DAE:               ; CODE XREF: NATV_CalcVolume(x,x,x)+54j
 ; ---------------------------------------------------------------------------
 
 loc_6BC06DBB:               ; CODE XREF: NATV_CalcVolume(x,x,x)+28j
-        movzx   ecx, _gbChanExpr$S9340[eax]
+        movzx   ecx, _gbChanExpr[eax]
         push    7Fh ; ''
         pop eax
         sub eax, ecx
@@ -574,7 +574,7 @@ loc_6BC06DBB:               ; CODE XREF: NATV_CalcVolume(x,x,x)+28j
 ; ---------------------------------------------------------------------------
 
 loc_6BC06DD7:               ; CODE XREF: NATV_CalcVolume(x,x,x)+25j
-        movzx   ecx, _gbChanExpr$S9340[eax]
+        movzx   ecx, _gbChanExpr[eax]
         push    7Fh ; ''
         pop eax
         sub eax, ecx
@@ -905,9 +905,9 @@ loc_6BC05EE9:               ; CODE XREF: voice_off(x)+13j
                     ; voice_off(x)+28j
         call    _fmwrite231@8   ; fmwrite(x,x)
         mov eax, esi
-        mov cx, word ptr _timer$S9322
+        mov cx, word ptr _timer
         imul    eax, 1Ah
-        inc word ptr _timer$S9322
+        inc word ptr _timer
         pop esi
         mov byte ptr _voice_table.flags1[eax], 2
         mov _voice_table.timer[eax], cx
@@ -989,7 +989,7 @@ loc_6BC05F22:               ; CODE XREF: note_off(x,x)+44j
         cmp cl, [esp+0Ch+a2]
         jnz short loc_6BC05F4E
         movzx   ecx, bl
-        test    _hold_table$S9326[ecx], 1
+        test    _hold_table[ecx], 1
         jz  short loc_6BC05F48
         or  al, 4
         mov [esi], al
@@ -1041,7 +1041,7 @@ arg_8       = byte ptr  10h
 
 loc_6BC06A0F:               ; CODE XREF: note_on(x,x,x)+Ej
         movzx   eax, [ebp+channel]
-        movzx   ecx, _program_table$S9323[eax]
+        movzx   ecx, _program_table[eax]
 
 loc_6BC06A1A:               ; CODE XREF: note_on(x,x,x)+19j
         mov eax, _gBankMem
@@ -1074,24 +1074,24 @@ loc_6BC06A1A:               ; CODE XREF: note_on(x,x,x)+19j
         mov [ebp+a6], edx
         call    _find_voice@16  ; find_voice(x,x,x,x)
         mov edi, 0FFh
-        cmp _v1$S9320, edi
+        cmp _v1, edi
         jnz short loc_6BC06A99
         mov eax, _gBankMem
         mov al, [esi+eax]
         and eax, 1
         push    eax     ; a1
         call    _steal_voice@4  ; steal_voice(x)
-        mov _v1$S9320, eax
+        mov _v1, eax
 
 loc_6BC06A99:               ; CODE XREF: note_on(x,x,x)+8Dj
-        cmp _v2$S9321, edi
+        cmp _v2, edi
         jnz short loc_6BC06AB8
         mov eax, _gBankMem
         mov al, [esi+eax+24h]
         and eax, 1
         push    eax     ; a1
         call    _steal_voice@4  ; steal_voice(x)
-        mov _v2$S9321, eax
+        mov _v2, eax
 
 loc_6BC06AB8:               ; CODE XREF: note_on(x,x,x)+ABj
         movzx   edi, [ebp+arg_8]
@@ -1099,18 +1099,18 @@ loc_6BC06AB8:               ; CODE XREF: note_on(x,x,x)+ABj
         push    ebx     ; a1
         push    [ebp+a6]    ; a6
         push    esi     ; a3
-        push    _v1$S9320   ; voiceNr
+        push    _v1   ; voiceNr
         call    _setup_voice@20 ; setup_voice(x,x,x,x,x)
         push    edi     ; a2
         push    ebx     ; a1
         push    [ebp+a6]    ; a6
         add esi, 24h ; '$'
         push    esi     ; a3
-        push    _v2$S9321   ; voiceNr
+        push    _v2   ; voiceNr
         call    _setup_voice@20 ; setup_voice(x,x,x,x,x)
-        push    _v1$S9320   ; a2
+        push    _v1   ; a2
         call    _voice_on@4 ; voice_on(x)
-        push    _v2$S9321
+        push    _v2
         jmp loc_6BC06BCE
 ; ---------------------------------------------------------------------------
 
@@ -1126,7 +1126,7 @@ loc_6BC06AF7:               ; CODE XREF: note_on(x,x,x)+59j
         push    eax     ; a1
         mov [ebp+a6], edx
         call    _find_voice@16  ; find_voice(x,x,x,x)
-        mov eax, _v1$S9320
+        mov eax, _v1
         mov edi, 0FFh
         cmp eax, edi
         jnz short loc_6BC06B37
@@ -1135,7 +1135,7 @@ loc_6BC06AF7:               ; CODE XREF: note_on(x,x,x)+59j
         and eax, 1
         push    eax     ; a1
         call    _steal_voice@4  ; steal_voice(x)
-        mov _v1$S9320, eax
+        mov _v1, eax
 
 loc_6BC06B37:               ; CODE XREF: note_on(x,x,x)+12Bj
         movzx   ecx, [ebp+arg_8]
@@ -1146,7 +1146,7 @@ loc_6BC06B37:               ; CODE XREF: note_on(x,x,x)+12Bj
         push    esi     ; a3
         push    eax     ; voiceNr
         call    _setup_voice@20 ; setup_voice(x,x,x,x,x)
-        mov eax, _v2$S9321
+        mov eax, _v2
         cmp eax, edi
         jz  short loc_6BC06BC8
         push    [ebp+a2]    ; a2
@@ -1156,7 +1156,7 @@ loc_6BC06B37:               ; CODE XREF: note_on(x,x,x)+12Bj
         push    esi     ; a3
         push    eax     ; voiceNr
         call    _setup_voice@20 ; setup_voice(x,x,x,x,x)
-        mov ecx, _v2$S9321
+        mov ecx, _v2
         mov eax, ecx
         push    ecx     ; a2
         imul    eax, 1Ah
@@ -1175,7 +1175,7 @@ loc_6BC06B84:               ; CODE XREF: note_on(x,x,x)+52j
         push    0       ; a2
         push    eax     ; a1
         call    _find_voice@16  ; find_voice(x,x,x,x)
-        mov eax, _v1$S9320
+        mov eax, _v1
         cmp eax, 0FFh
         jnz short loc_6BC06BBA
         mov eax, _gBankMem
@@ -1183,7 +1183,7 @@ loc_6BC06B84:               ; CODE XREF: note_on(x,x,x)+52j
         and eax, 1
         push    eax     ; a1
         call    _steal_voice@4  ; steal_voice(x)
-        mov _v1$S9320, eax
+        mov _v1, eax
 
 loc_6BC06BBA:               ; CODE XREF: note_on(x,x,x)+1AEj
         movzx   ecx, [ebp+arg_8]
@@ -1196,7 +1196,7 @@ loc_6BC06BBA:               ; CODE XREF: note_on(x,x,x)+1AEj
 
 loc_6BC06BC8:               ; CODE XREF: note_on(x,x,x)+15Dj
                     ; note_on(x,x,x)+18Ej
-        push    _v1$S9320   ; a2
+        push    _v1   ; a2
 
 loc_6BC06BCE:               ; CODE XREF: note_on(x,x,x)+FEj
         call    _voice_on@4 ; voice_on(x)
@@ -1204,10 +1204,10 @@ loc_6BC06BCE:               ; CODE XREF: note_on(x,x,x)+FEj
 loc_6BC06BD3:               ; CODE XREF: note_on(x,x,x)+60j
         movzx   eax, [ebp+channel]
         mov cl, [ebp+arg_8]
-        mov _gbVelLevel$S9341[eax], cl
-        inc byte_6BC09170[eax]
-        movzx   ecx, byte_6BC09170[eax]
-        lea eax, byte_6BC09170[eax]
+        mov _gbVelLevel[eax], cl
+        inc _byte_6BC09170[eax]
+        movzx   ecx, _byte_6BC09170[eax]
+        lea eax, _byte_6BC09170[eax]
         cmp ecx, 100h
         jnz short loc_6BC06BFE
         and byte ptr [eax], 0
@@ -1327,8 +1327,8 @@ a2      = dword ptr  18h
         mov _voice_table.field_10[eax], cl
         mov cl, [ebp+var_1]
         mov _voice_table.flags2[eax], cl
-        mov cx, word ptr _timer$S9322
-        inc word ptr _timer$S9322
+        mov cx, word ptr _timer
+        inc word ptr _timer
         mov byte ptr _voice_table.flags1[eax], 1
         mov _voice_table.timer[eax], cx
         mov cl, byte ptr [ebp+a6]
@@ -1361,8 +1361,8 @@ a4      = dword ptr  14h
         push    edi
         mov eax, 0FFh
         xor edi, edi
-        mov _v1$S9320, eax
-        mov _v2$S9321, eax
+        mov _v1, eax
+        mov _v2, eax
         xor ebx, ebx
         mov [ebp+var_4], edi
         mov esi, offset _voice_table
@@ -1385,15 +1385,15 @@ loc_6BC05F9F:               ; CODE XREF: find_voice(x,x,x,x)+2Ej
         jnz short loc_6BC05FDB
 
 loc_6BC05FA4:               ; CODE XREF: find_voice(x,x,x,x)+25j
-        mov ax, word ptr _timer$S9322
+        mov ax, word ptr _timer
         sub ax, [esi+2]
         cmp ax, bx
         jb  short loc_6BC05FCC
-        mov ecx, _v1$S9320
+        mov ecx, _v1
         mov [ebp+var_4], ebx
-        mov _v2$S9321, ecx
+        mov _v2, ecx
         mov ebx, eax
-        mov _v1$S9320, edi
+        mov _v1, edi
         jmp short loc_6BC05FDB
 ; ---------------------------------------------------------------------------
 
@@ -1401,7 +1401,7 @@ loc_6BC05FCC:               ; CODE XREF: find_voice(x,x,x,x)+51j
         cmp ax, word ptr [ebp+var_4]
         jb  short loc_6BC05FDB
         mov [ebp+var_4], eax
-        mov _v2$S9321, edi
+        mov _v2, edi
 
 loc_6BC05FDB:               ; CODE XREF: find_voice(x,x,x,x)+42j
                     ; find_voice(x,x,x,x)+6Aj ...
@@ -1428,17 +1428,17 @@ loc_6BC06011:               ; CODE XREF: find_voice(x,x,x,x)+9Dj
         jnz short loc_6BC0605E
 
 loc_6BC0601A:               ; CODE XREF: find_voice(x,x,x,x)+91j
-        mov eax, _timer$S9322
+        mov eax, _timer
         sub eax, dword ptr _voice_table.timer+1A0h
         cmp [ebp+a1], 0
         jnz short loc_6BC06049
         cmp ax, bx
         jb  short loc_6BC06049
-        mov ecx, _v1$S9320
+        mov ecx, _v1
         mov [ebp+var_4], ebx
-        mov _v2$S9321, ecx
+        mov _v2, ecx
         mov ebx, eax
-        mov _v1$S9320, edi
+        mov _v1, edi
         jmp short loc_6BC0605E
 ; ---------------------------------------------------------------------------
 
@@ -1449,7 +1449,7 @@ loc_6BC06049:               ; CODE XREF: find_voice(x,x,x,x)+C9j
         cmp ax, word ptr [ebp+var_4]
         jb  short loc_6BC0605E
         mov [ebp+var_4], eax
-        mov _v2$S9321, edi
+        mov _v2, edi
 
 loc_6BC0605E:               ; CODE XREF: find_voice(x,x,x,x)+B8j
                     ; find_voice(x,x,x,x)+E7j ...
@@ -1472,24 +1472,24 @@ loc_6BC06088:               ; CODE XREF: find_voice(x,x,x,x)+114j
         jnz short loc_6BC060D4
 
 loc_6BC06091:               ; CODE XREF: find_voice(x,x,x,x)+108j
-        mov eax, _timer$S9322
+        mov eax, _timer
         xor ecx, ecx
         sub eax, dword ptr _voice_table.timer+1BAh
         cmp [ebp+a1], ecx
         jnz short loc_6BC060C3
         cmp ax, bx
         jb  short loc_6BC060C3
-        mov eax, _v1$S9320
+        mov eax, _v1
         cmp eax, edi
         jnz short loc_6BC060B6
         cmp [ebp+a2], ecx
         jnz short loc_6BC060BB
 
 loc_6BC060B6:               ; CODE XREF: find_voice(x,x,x,x)+14Fj
-        mov _v2$S9321, eax
+        mov _v2, eax
 
 loc_6BC060BB:               ; CODE XREF: find_voice(x,x,x,x)+154j
-        mov _v1$S9320, esi
+        mov _v1, esi
         jmp short loc_6BC060D4
 ; ---------------------------------------------------------------------------
 
@@ -1499,7 +1499,7 @@ loc_6BC060C3:               ; CODE XREF: find_voice(x,x,x,x)+141j
         jnz short loc_6BC060D4
         cmp ax, word ptr [ebp+var_4]
         jb  short loc_6BC060D4
-        mov _v2$S9321, esi
+        mov _v2, esi
 
 loc_6BC060D4:               ; CODE XREF: find_voice(x,x,x,x)+12Fj
                     ; find_voice(x,x,x,x)+161j ...
@@ -1548,7 +1548,7 @@ loc_6BC06108:               ; CODE XREF: steal_voice(x)+7Fj
         mov edx, [ebp+var_10]
 
 loc_6BC0610B:               ; CODE XREF: steal_voice(x)+2Aj
-        mov si, word ptr _timer$S9322
+        mov si, word ptr _timer
         mov cl, [edx]
         sub si, [edx-2]
         cmp cl, 9
@@ -1636,7 +1636,7 @@ a9      = dword ptr  2Ch
         push    ebx
         push    esi
         mov esi, dword ptr [ebp+a1]
-        movzx   eax, _pan_mask$S9324[eax]
+        movzx   eax, _pan_mask[eax]
         mov [ebp+var_8], eax
         push    edi
         lea eax, [esi+7]
@@ -1809,7 +1809,7 @@ loc_6BC06757:               ; CODE XREF: setup_operator(x,x,x,x,x,x,x,x,x)+10Fj
         mov ecx, [ebp+var_4]
         mov ebx, [ebp+a2]
         sar edx, 2
-        mov ecx, _?td_adjust@?1??setup_operator@@9@9$S9489[ecx*4]
+        mov ecx, _td_adjust__setup_operator[ecx*4]
         imul    ecx, edx
         sar ecx, 8
         cmp ebx, 1
@@ -1828,7 +1828,7 @@ loc_6BC067F7:               ; CODE XREF: setup_operator(x,x,x,x,x,x,x,x,x)+1A7j
         mov ecx, [ebp+var_4]
         mov al, [eax+5]
         and eax, 0E0h
-        movzx   esi, _fnum$S9328[ecx*2]
+        movzx   esi, _fnum[ecx*2]
         add esi, edx
         mov ecx, esi
         sar ecx, 8
@@ -1838,8 +1838,8 @@ loc_6BC067F7:               ; CODE XREF: setup_operator(x,x,x,x,x,x,x,x,x)+1A7j
         mov eax, [ebp+a3]
         mov _voice_table.field_11[eax], bl
         mov eax, [ebp+a6]
-        movzx   cx, byte ptr _gbChanBendRange$S9325[eax]
-        mov ax, _giBend$S9327[eax*2]
+        movzx   cx, byte ptr _gbChanBendRange[eax]
+        mov ax, _giBend[eax*2]
         push    ecx     ; a3
         push    eax     ; iBend
         push    esi     ; a1
@@ -1965,7 +1965,7 @@ a3      = dword ptr  8
         cmp [esp+a3], 40h ; '@'
         jl  short loc_6BC06C1A
         mov eax, [esp+a2]
-        or  _hold_table$S9326[eax], 1
+        or  _hold_table[eax], 1
         jmp short locret_6BC06C51
 ; ---------------------------------------------------------------------------
 
@@ -1975,7 +1975,7 @@ loc_6BC06C1A:               ; CODE XREF: hold_controller(x,x)+5j
         mov esi, [esp+8+a2]
         push    ebx
         mov edi, offset _voice_table.channel
-        and _hold_table$S9326[esi], 0FEh
+        and _hold_table[esi], 0FEh
         xor ebx, ebx
 
 loc_6BC06C2F:               ; CODE XREF: hold_controller(x,x)+46j
@@ -2024,40 +2024,40 @@ _fmreset@0  proc near       ; CODE XREF: MidiOpenDevice(x,x)+50p
         push    8
         mov eax, 20002000h
         pop ecx
-        mov edi, offset _giBend$S9327
+        mov edi, offset _giBend
         rep stosd
         mov eax, 2020202h
-        mov edi, offset _gbChanBendRange$S9325
+        mov edi, offset _gbChanBendRange
         stosd
         stosd
         stosd
         stosd
         xor eax, eax
-        mov edi, offset _hold_table$S9326
+        mov edi, offset _hold_table
         stosd
         stosd
         stosd
         stosd
         mov eax, 7F7F7F7Fh
-        mov edi, offset _gbChanExpr$S9340
+        mov edi, offset _gbChanExpr
         stosd
         stosd
         stosd
         stosd
         mov eax, 64646464h
-        mov edi, offset _gbChanVolume$S9339
+        mov edi, offset _gbChanVolume
         stosd
         stosd
         stosd
         stosd
         mov eax, 4040404h
-        mov edi, offset _gbChanAtten$S9338
+        mov edi, offset _gbChanAtten
         stosd
         stosd
         stosd
         stosd
         mov eax, 30303030h
-        mov edi, offset _pan_mask$S9324
+        mov edi, offset _pan_mask
         stosd
         stosd
         stosd
@@ -2071,7 +2071,7 @@ loc_6BC05E74:               ; CODE XREF: fmreset()+AEj
         add eax, 1Ah
         cmp eax, (offset _voice_table.flags1+1D4h)
         jl  short loc_6BC05E74
-        mov word ptr _timer$S9322, cx
+        mov word ptr _timer, cx
         pop edi
         retn
 _fmreset@0  endp
@@ -2167,16 +2167,12 @@ Voice       ends
 
 
 
-; __int16 fnum_S9328[]
-_fnum$S9328 dw 514, 544, 577, 611, 647, 686, 727, 770, 816, 864, 916, 970
-; char gbVelocityAtten_S9329[]
-_gbVelocityAtten$S9329 db 40, 36, 32, 28, 23, 21, 19, 17, 15, 14, 13, 12, 11
+_fnum dw 514, 544, 577, 611, 647, 686, 727, 770, 816, 864, 916, 970
+_gbVelocityAtten db 40, 36, 32, 28, 23, 21, 19, 17, 15, 14, 13, 12, 11
         db 10, 9, 8, 7, 6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1, 1, 0
         db 0, 0
-; int _td_adjust__1__setup_operator__9_9_S9489[]
-_?td_adjust@?1??setup_operator@@9@9$S9489 dd 256, 242, 228, 215, 203, 192, 181, 171, 161, 152, 144, 136
-; char _pmask__1__MidiPitchBend__9_9_S9573[]
-_?pmask@?1??MidiPitchBend@@9@9$S9573 db 16, 32, 64, 128, 0, 0, 0, 0
+_td_adjust__setup_operator dd 256, 242, 228, 215, 203, 192, 181, 171, 161, 152, 144, 136
+_pmask__MidiPitchBend db 16, 32, 64, 128, 0, 0, 0, 0
 
 
 
@@ -2219,30 +2215,19 @@ _gBankMem   dd 0
 
 
 
-; signed int v1_S9320
-_v1$S9320   dd 0
-; signed int v2_S9321
-_v2$S9321   dd 0
+_v1   dd 0
+_v2   dd 0
 
-_gbVelLevel$S9341 db 10h dup(0)
-; char pan_mask_S9324[16]
-_pan_mask$S9324 db 10h dup(0)
-; char gbChanAtten_S9338[16]
-_gbChanAtten$S9338 db 10h dup(0)
-; USHORT giBend_S9327[16]
-_giBend$S9327   dw 10h dup(0)
-; BYTE hold_table_S9326[16]
-_hold_table$S9326 db 10h dup(0)
-; char program_table_S9323[16]
-_program_table$S9323 db 10h dup(0)
-; BYTE gbChanVolume_S9339[16]
-_gbChanVolume$S9339 db 10h dup(0)
-; BYTE gbChanExpr_S9340[16]
-_gbChanExpr$S9340 db 10h dup(0)
-; BYTE gbChanBendRange_S9325[16]
-_gbChanBendRange$S9325 db 10h dup(0)
-; char byte_6BC09170[]
-byte_6BC09170   db 10h+1 dup(0)
+_gbVelLevel db 10h dup(0)
+_pan_mask db 10h dup(0)
+_gbChanAtten db 10h dup(0)
+_giBend   dw 10h dup(0)
+_hold_table db 10h dup(0)
+_program_table db 10h dup(0)
+_gbChanVolume db 10h dup(0)
+_gbChanExpr db 10h dup(0)
+_gbChanBendRange db 10h dup(0)
+_byte_6BC09170   db 10h+1 dup(0)
 
 
 
@@ -2251,7 +2236,8 @@ byte_6BC09170   db 10h+1 dup(0)
 
 
 
-_timer$S9322    dd 0
+_timer    dd 0
+dd 0
 
 
 
