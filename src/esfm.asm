@@ -2,51 +2,6 @@
 .mmx
 .model flat
 
-; export
-public _fnum
-public _gbVelocityAtten
-public _td_adjust__setup_operator
-public _pmask__MidiPitchBend
-
-public _gBankMem
-public _voice_table
-public _v1
-public _v2
-public _gbVelLevel
-public _pan_mask
-public _gbChanAtten
-public _giBend
-public _hold_table
-public _program_table
-public _gbChanVolume
-public _gbChanExpr
-public _gbChanBendRange
-public _byte_6BC09170
-public _timer
-
-public _MidiMessage@4
-public _MidiPitchBend@8
-public _MidiCalcFAndB@8
-public _NATV_CalcVolume@12
-public _NATV_CalcNewVolume@4
-public _NATV_CalcBend@12
-public _voice_off@4
-public _note_off@8
-public _note_on@12
-public _setup_voice@20
-public _find_voice@16
-public _steal_voice@4
-public _setup_operator@36
-public _voice_on@4
-public _hold_controller@8
-public _fmreset@0
-public _MidiAllNotesOff@0
-
-; import
-EXTRN _fmwrite231@8 :PROC
-EXTRN _fmwrite21@8 :PROC
-
-;
 Voice       struc ; (sizeof=0x1A, mappedto_41) ; XREF: .data:_voice_table/r
 flags1      db ?            ; XREF: voice_off(x)+54/w
                     ; find_voice(x,x,x,x)+7F/o ...
@@ -67,37 +22,62 @@ field_15    db 4 dup(?)     ; XREF: setup_operator(x,x,x,x,x,x,x,x,x)+131/w
 field_19    db ?
 Voice       ends
 
+
+
+
+
+
+
+; export
+public _MidiMessage@4
+public _MidiPitchBend@8
+public _MidiCalcFAndB@8
+public _NATV_CalcVolume@12
+public _NATV_CalcNewVolume@4
+public _NATV_CalcBend@12
+public _voice_off@4
+public _note_off@8
+public _note_on@12
+public _setup_voice@20
+public _find_voice@16
+public _steal_voice@4
+public _setup_operator@36
+public _voice_on@4
+public _hold_controller@8
+public _fmreset@0
+public _MidiAllNotesOff@0
+
+; import
+extrn _fnum:word
+extrn _gbVelocityAtten:byte
+extrn _td_adjust__setup_operator:dword
+extrn _pmask__MidiPitchBend:byte
+
+extrn _gBankMem:dword
+extrn _v1:dword
+extrn _v2:dword
+extrn _timer:dword
+
+extrn _voice_table:Voice
+extrn _gbVelLevel:byte
+extrn _pan_mask:byte
+extrn _gbChanAtten:byte
+extrn _giBend:word
+extrn _hold_table:byte
+extrn _program_table:byte
+extrn _gbChanVolume:byte
+extrn _gbChanExpr:byte
+extrn _gbChanBendRange:byte
+extrn _byte_6BC09170:byte
+
+
+extrn _fmwrite231@8:proc
+extrn _fmwrite21@8:proc
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .data
 
-_fnum dw 514, 544, 577, 611, 647, 686, 727, 770, 816, 864, 916, 970
-_gbVelocityAtten db 40, 36, 32, 28, 23, 21, 19, 17, 15, 14, 13, 12, 11
-    db 10, 9, 8, 7, 6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1, 1, 0
-    db 0, 0
-_td_adjust__setup_operator dd 256, 242, 228, 215, 203, 192, 181, 171, 161, 152, 144, 136
-_pmask__MidiPitchBend db 16, 32, 64, 128, 0, 0, 0, 0
-
-
-_gBankMem   dd 0
-
-_voice_table    Voice 18+2 dup(<0>)
-
-_v1   dd 0
-_v2   dd 0
-
-_gbVelLevel db 10h dup(0)
-_pan_mask db 10h dup(0)
-_gbChanAtten db 10h dup(0)
-_giBend   dw 10h dup(0)
-_hold_table db 10h dup(0)
-_program_table db 10h dup(0)
-_gbChanVolume db 10h dup(0)
-_gbChanExpr db 10h dup(0)
-_gbChanBendRange db 10h dup(0)
-_byte_6BC09170   db 10h+1 dup(0)
-
-_timer    dd 0
-dd 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .code

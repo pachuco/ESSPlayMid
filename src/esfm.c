@@ -5,10 +5,60 @@
 #include "esfm.h"
 #include "util.h"
 
-extern BYTE* gBankMem;
+#include <stdint.h>
 extern __stdcall void MidiMessage(DWORD dwData);
 extern __stdcall void fmreset();
 extern __stdcall void MidiAllNotesOff();
+
+uint16_t fnum[] = {
+    514, 544, 577, 611, 647, 686, 727, 770, 816, 864, 916, 970
+};
+uint8_t gbVelocityAtten[] = {
+    40, 36, 32, 28, 23, 21, 19, 17, 15, 14, 13, 12, 11,
+    10, 9, 8, 7, 6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1, 1, 0,
+    0, 0
+};
+uint32_t td_adjust__setup_operator[] = {
+    256, 242, 228, 215, 203, 192, 181, 171, 161, 152, 144, 136
+};
+uint8_t pmask__MidiPitchBend[] = {
+    16, 32, 64, 128, 0, 0, 0, 0
+};
+
+uint8_t* gBankMem = 0;
+uint32_t v1 = 0;
+uint32_t v2 = 0;
+uint32_t timer[2] = {0};
+
+uint8_t  voice_table[26 * (18+2)] = {0}; //TODO: struct
+uint8_t  gbVelLevel[16]           = {0};
+uint8_t  pan_mask[16]             = {0};
+uint8_t  gbChanAtten[16]          = {0};
+uint16_t giBend[16]               = {0};
+uint8_t  hold_table[16]           = {0};
+uint8_t  program_table[16]        = {0};
+uint8_t  gbChanVolume[16]         = {0};
+uint8_t  gbChanExpr[16]           = {0};
+uint8_t  gbChanBendRange[16]      = {0};
+uint8_t  byte_6BC09170[16+1]      = {0};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 static USHORT fmBase = 0;
 static IOHandler ioHand = {0};
@@ -162,20 +212,3 @@ void esfm_shutdown() {
 void esfm_midiShort(DWORD dwData) {
     MidiMessage(dwData);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
