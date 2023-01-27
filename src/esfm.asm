@@ -3,7 +3,26 @@
 .model flat
 
 ; export
+public _fnum
+public _gbVelocityAtten
+public _td_adjust__setup_operator
+public _pmask__MidiPitchBend
+
 public _gBankMem
+public _voice_table
+public _v1
+public _v2
+public _gbVelLevel
+public _pan_mask
+public _gbChanAtten
+public _giBend
+public _hold_table
+public _program_table
+public _gbChanVolume
+public _gbChanExpr
+public _gbChanBendRange
+public _byte_6BC09170
+public _timer
 
 public _MidiMessage@4
 public _MidiPitchBend@8
@@ -27,10 +46,60 @@ public _MidiAllNotesOff@0
 EXTRN _fmwrite231@8 :PROC
 EXTRN _fmwrite21@8 :PROC
 
+;
+Voice       struc ; (sizeof=0x1A, mappedto_41) ; XREF: .data:_voice_table/r
+flags1      db ?            ; XREF: voice_off(x)+54/w
+                    ; find_voice(x,x,x,x)+7F/o ...
+field_1     db ?
+timer       dw ?            ; XREF: voice_off(x)+5B/w
+                    ; find_voice(x,x,x,x)+BF/r ...
+channel     db ?            ; XREF: find_voice(x,x,x,x)+93/r
+                    ; find_voice(x,x,x,x)+10A/r ...
+field_5     db ?            ; XREF: MidiAllNotesOff()+1/o
+                    ; find_voice(x,x,x,x)+9F/r ...
+flags2      db ?            ; XREF: setup_voice(x,x,x,x,x)+E0/w
+field_7     db ?
+field_8     dw 4 dup(?)     ; XREF: setup_operator(x,x,x,x,x,x,x,x,x)+223/w
+                    ; MidiPitchBend(x,x)+6D/r
+field_10    db ?            ; XREF: setup_voice(x,x,x,x,x)+D7/w
+field_11    db 4 dup(?)     ; XREF: setup_operator(x,x,x,x,x,x,x,x,x)+1D8/w
+field_15    db 4 dup(?)     ; XREF: setup_operator(x,x,x,x,x,x,x,x,x)+131/w
+field_19    db ?
+Voice       ends
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.data
+
+_fnum dw 514, 544, 577, 611, 647, 686, 727, 770, 816, 864, 916, 970
+_gbVelocityAtten db 40, 36, 32, 28, 23, 21, 19, 17, 15, 14, 13, 12, 11
+    db 10, 9, 8, 7, 6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1, 1, 0
+    db 0, 0
+_td_adjust__setup_operator dd 256, 242, 228, 215, 203, 192, 181, 171, 161, 152, 144, 136
+_pmask__MidiPitchBend db 16, 32, 64, 128, 0, 0, 0, 0
 
 
+_gBankMem   dd 0
 
+_voice_table    Voice 18+2 dup(<0>)
 
+_v1   dd 0
+_v2   dd 0
+
+_gbVelLevel db 10h dup(0)
+_pan_mask db 10h dup(0)
+_gbChanAtten db 10h dup(0)
+_giBend   dw 10h dup(0)
+_hold_table db 10h dup(0)
+_program_table db 10h dup(0)
+_gbChanVolume db 10h dup(0)
+_gbChanExpr db 10h dup(0)
+_gbChanBendRange db 10h dup(0)
+_byte_6BC09170   db 10h+1 dup(0)
+
+_timer    dd 0
+dd 0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .code
 
 
@@ -2098,149 +2167,6 @@ loc_6BC05E94:               ; CODE XREF: MidiAllNotesOff()+1Bj
         pop esi
         retn
 _MidiAllNotesOff@0 endp
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-.data
-
-
-
-
-Voice       struc ; (sizeof=0x1A, mappedto_41) ; XREF: .data:_voice_table/r
-flags1      db ?            ; XREF: voice_off(x)+54/w
-                    ; find_voice(x,x,x,x)+7F/o ...
-field_1     db ?
-timer       dw ?            ; XREF: voice_off(x)+5B/w
-                    ; find_voice(x,x,x,x)+BF/r ...
-channel     db ?            ; XREF: find_voice(x,x,x,x)+93/r
-                    ; find_voice(x,x,x,x)+10A/r ...
-field_5     db ?            ; XREF: MidiAllNotesOff()+1/o
-                    ; find_voice(x,x,x,x)+9F/r ...
-flags2      db ?            ; XREF: setup_voice(x,x,x,x,x)+E0/w
-field_7     db ?
-field_8     dw 4 dup(?)     ; XREF: setup_operator(x,x,x,x,x,x,x,x,x)+223/w
-                    ; MidiPitchBend(x,x)+6D/r
-field_10    db ?            ; XREF: setup_voice(x,x,x,x,x)+D7/w
-field_11    db 4 dup(?)     ; XREF: setup_operator(x,x,x,x,x,x,x,x,x)+1D8/w
-field_15    db 4 dup(?)     ; XREF: setup_operator(x,x,x,x,x,x,x,x,x)+131/w
-field_19    db ?
-Voice       ends
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-_fnum dw 514, 544, 577, 611, 647, 686, 727, 770, 816, 864, 916, 970
-_gbVelocityAtten db 40, 36, 32, 28, 23, 21, 19, 17, 15, 14, 13, 12, 11
-        db 10, 9, 8, 7, 6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1, 1, 0
-        db 0, 0
-_td_adjust__setup_operator dd 256, 242, 228, 215, 203, 192, 181, 171, 161, 152, 144, 136
-_pmask__MidiPitchBend db 16, 32, 64, 128, 0, 0, 0, 0
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-_voice_table    Voice 18+2 dup(<0>)
-
-; BYTE *_gBankMem
-_gBankMem   dd 0
-
-
-
-
-
-
-
-
-
-
-
-_v1   dd 0
-_v2   dd 0
-
-_gbVelLevel db 10h dup(0)
-_pan_mask db 10h dup(0)
-_gbChanAtten db 10h dup(0)
-_giBend   dw 10h dup(0)
-_hold_table db 10h dup(0)
-_program_table db 10h dup(0)
-_gbChanVolume db 10h dup(0)
-_gbChanExpr db 10h dup(0)
-_gbChanBendRange db 10h dup(0)
-_byte_6BC09170   db 10h+1 dup(0)
-
-
-
-
-
-
-
-
-_timer    dd 0
-dd 0
-
-
-
 
 
 end
