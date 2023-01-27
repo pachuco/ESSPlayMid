@@ -1,0 +1,11 @@
+bank size: 8288 bytes
+
+bnk_common.bin
+md5: 2758C8BF602636097A5D136E90F42234
+Most common variant.
+OS drivers: win98, winME, win2000, winXP
+Games: Warcraft, RedGuard
+
+bnk_NT4.bin
+md5: 748000A4BA2035222ED428D622B62E5E
+NT4

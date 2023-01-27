@@ -14,8 +14,8 @@ static USHORT fmBase = 0;
 static IOHandler ioHand = {0};
 
 static InstrBank bankArr[] = {
-        {"bnk_01.bin", "Win 3.1 and 2000+ drivers.", NULL},
-        {"bnk_02.bin", "NT4 driver, maybe ?win9x", NULL},
+        {"bnk_common.bin", "Most commonly distributed with OS drivers and games.", NULL},
+        {"bnk_NT4.bin", "NT4 driver.", NULL},
 };
 static int curBank = 0;
 
