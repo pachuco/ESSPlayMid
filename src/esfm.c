@@ -16,6 +16,8 @@ static IOHandler ioHand = {0};
 static InstrBank bankArr[] = {
         {"bnk_common.bin", "Most commonly distributed with OS drivers and games.", NULL},
         {"bnk_NT4.bin", "NT4 driver.", NULL},
+        
+        //{"?malloc", "Malloc unsanitized memory special dish.", NULL},  //will crash, instrument data not sanitized
 };
 static int curBank = 0;
 
@@ -120,7 +122,12 @@ BOOL esfm_init(USHORT port) {
     for (int i=0; i < COUNTOF(bankArr); i++) {
         int size;
         
-        if (loadFile(bankArr[i].fileName, &bankArr[i].pData, &size)) {
+        if(bankArr[i].fileName[0] == '?') {
+            if (!strcmp("?malloc", bankArr[i].fileName)) {
+                bankArr[i].pData = malloc(BANKLEN);
+                bankArr[i].pData != NULL;
+            }
+        } else if (loadFile(bankArr[i].fileName, &bankArr[i].pData, &size)) {
             assert(size == BANKLEN);
             assert(bankArr[i].pData != NULL);
         }
