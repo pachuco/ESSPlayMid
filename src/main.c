@@ -1,19 +1,56 @@
 #include <windows.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <assert.h>
 #include <conio.h>
 #include "util.h"
 #include "buttio.h"
 #include "esfm.h"
-
-
-
-
 
 typedef struct {
     HMIDIIN hmi;
     MIDIINCAPSA caps;
     UINT index;
 } MidiInDevice;
+
+typedef struct {
+    char fileName[32];
+    char description[64];
+    BYTE* pData;
+} InstrBank;
+
+static USHORT fmBase = 0;
+static IOHandler ioHand = {0};
+
+static InstrBank bankArr[] = {
+        {"bnk_common.bin", "Most commonly distributed with OS drivers and games.", NULL},
+        {"bnk_NT4.bin", "NT4 driver.", NULL},
+        
+        //{"?malloc", "Malloc unsanitized memory special dish.", NULL},  //will crash, instrument data not sanitized
+};
+static int curBank = 0;
+
+
+
+
+
+//not very accurate
+void QPCuWait(DWORD uSecTime) { //KeStallExecutionProcessor
+    static LONGLONG freq=0;
+    LONGLONG start=0, cur=0, wait=0;
+    
+    if (freq == 0) QueryPerformanceFrequency((PLARGE_INTEGER)&freq);
+    if (freq != 0) {
+        wait = ((LONGLONG)uSecTime * freq)/(LONGLONG)1000000;
+        QueryPerformanceCounter((PLARGE_INTEGER)&start);
+        while (cur < (start + wait)) {
+            //__asm__("pause");
+            QueryPerformanceCounter((PLARGE_INTEGER)&cur);
+        }
+    } else {
+        //TODO: alternate timing mechanism
+    }
+}
 
 USHORT getPortConfig(const char* configName) {
     char configPath[MAX_PATH];
@@ -62,8 +99,20 @@ void CALLBACK midiCB(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR
         printf("Closing device.\n");
     } else {
         printf("unknown message: %08x\n", wMsg);
+    }
 }
-};
+
+void printFmBankDescription(InstrBank* pBank) {
+    printf("FM bank: \"%s\", %s\n", pBank->fileName, pBank->description);
+}
+
+void fmWriteCallback(BYTE baseOffset, BYTE data) {
+    buttio_wu8(&ioHand, fmBase+baseOffset, data);
+}
+
+void fmDelayCallback() {
+    QPCuWait(10);
+}
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
@@ -92,7 +141,6 @@ int main(int argc, char* argv[]) {
         UINT devIndex = strtol(argv[1], NULL, 10);
         MidiInDevice midev = {0};
         UINT errMidi = 0;
-        USHORT fmPort;
         
         if (!devIndex) {
             printUsage();
@@ -100,26 +148,47 @@ int main(int argc, char* argv[]) {
         }
         midev.index = devIndex - 1;
         
-        fmPort = getPortConfig("config.ini");
-        if (fmPort == 0) {
+        fmBase = getPortConfig("config.ini");
+        if (fmBase == 0) {
             printf("Config read failure!\n");
             return 1;
         }
-        printf("FM port %X\n", fmPort);
+        printf("FM port %X\n", fmBase);
         
-        if (!esfm_init(fmPort)) {
-            printf("ESFM init failure!\n");
+        assert(COUNTOF(bankArr) >= 1);
+        for (int i=0; i < COUNTOF(bankArr); i++) {
+            int size;
+            
+            if(bankArr[i].fileName[0] == '?') {
+                if (!strcmp("?malloc", bankArr[i].fileName)) {
+                    bankArr[i].pData = malloc(BANKLEN);
+                    assert(bankArr[i].pData != NULL);
+                }
+            } else if (loadFile(bankArr[i].fileName, &bankArr[i].pData, &size)) {
+                assert(size == BANKLEN);
+                assert(bankArr[i].pData != NULL);
+            }
+        }
+        curBank = 0;
+            
+        if (!buttio_init(&ioHand, NULL, BUTTIO_MET_IOPM)) {
+            printf("Buttio init error!\n");
             return 1;
         }
+        iopm_fillRange(&ioHand.iopm, fmBase, fmBase+0xF, TRUE);
+        buttio_flushIOPMChanges(&ioHand);
         
         errMidi |= midiInGetDevCapsA(midev.index, &midev.caps, sizeof(MIDIINCAPSA));
         errMidi |= midiInOpen(&midev.hmi, midev.index, (DWORD_PTR)&midiCB, (DWORD_PTR)&midev, CALLBACK_FUNCTION);
         errMidi |= midiInStart(midev.hmi);
         if (errMidi) {
             printf("Midi-in init error!\n");
-            esfm_shutdown();
+            buttio_shutdown(&ioHand);
             return 1;
         };
+        
+        esfm_init(bankArr[0].pData, &fmWriteCallback, &fmDelayCallback);
+        printFmBankDescription(&bankArr[0]);
         
         BOOL isRunning = TRUE;
         while(isRunning) {
@@ -128,11 +197,17 @@ int main(int argc, char* argv[]) {
                 
                 switch (c) {
                     case VK_SPACE: {
-                        InstrBank* pBank = esfm_switchBank();
+                        InstrBank* pBank;
                         
-                        printf("Bank switch: \"%s\", %s\n", pBank->fileName, pBank->description);
+                        if (COUNTOF(bankArr) == 1) break;
+                        curBank = (curBank + 1) % COUNTOF(bankArr);
+                        pBank = &bankArr[curBank];
+                        printFmBankDescription(pBank);
+                        
+                        esfm_setBank(pBank->pData);
                         }break;
                     case VK_ESCAPE: {
+                        esfm_shutdownDevice();
                         isRunning = FALSE;
                         }break;
                     default:
@@ -143,10 +218,10 @@ int main(int argc, char* argv[]) {
         
         midiInStop(midev.hmi);
         midiInClose(midev.hmi);
+        
+        //SleepEx(2000, 1);
+        buttio_shutdown(&ioHand);
     }
-    
-    SleepEx(2000, 1);
-    esfm_shutdown();
     
     return 0;
 }

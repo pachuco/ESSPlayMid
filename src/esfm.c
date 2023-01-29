@@ -1,12 +1,7 @@
-#include <stdio.h>
-#include <windows.h>
-#include <assert.h>
-#include "buttio.h"
-#include "esfm.h"
-#include "util.h"
-
 #include <stdint.h>
-extern __stdcall void MidiMessage(DWORD dwData);
+#include "esfm.h"
+
+extern __stdcall void MidiMessage(uint32_t dwData);
 extern __stdcall void fmreset();
 extern __stdcall void MidiAllNotesOff();
 
@@ -60,41 +55,11 @@ uint8_t  byte_6BC09170[16+1]      = {0};
 
 
 
-static USHORT fmBase = 0;
-static IOHandler ioHand = {0};
-
-static InstrBank bankArr[] = {
-        {"bnk_common.bin", "Most commonly distributed with OS drivers and games.", NULL},
-        {"bnk_NT4.bin", "NT4 driver.", NULL},
-        
-        //{"?malloc", "Malloc unsanitized memory special dish.", NULL},  //will crash, instrument data not sanitized
-};
-static int curBank = 0;
 
 
 
-
-//not very accurate
-void QPCuWait(DWORD uSecTime) { //KeStallExecutionProcessor
-    static LONGLONG freq=0;
-    LONGLONG start=0, cur=0, wait=0;
-    
-    if (freq == 0) QueryPerformanceFrequency((PLARGE_INTEGER)&freq);
-    if (freq != 0) {
-        wait = ((LONGLONG)uSecTime * freq)/(LONGLONG)1000000;
-        QueryPerformanceCounter((PLARGE_INTEGER)&start);
-        while (cur < (start + wait)) {
-            //__asm__("pause");
-            QueryPerformanceCounter((PLARGE_INTEGER)&cur);
-        }
-    } else {
-        //TODO: alternate timing mechanism
-    }
-}
-
-
-
-
+FunWriteCB pWriteCB = NULL;
+FunDelayCB pDelayCB = NULL;
 
 enum {
     P_STATUS,
@@ -102,13 +67,10 @@ enum {
     P_INDEX_LO,
     P_INDEX_HI,
 };
-int __stdcall fmwrite231(USHORT index, USHORT data) {
-    buttio_wu8(&ioHand, fmBase+2, index);
-    //QPCuWait(25);
-    buttio_wu8(&ioHand, fmBase+3, index>>8);
-    QPCuWait(10);
-    buttio_wu8(&ioHand, fmBase+1, data);
-    QPCuWait(10);
+int __stdcall fmwrite231(uint16_t index, uint16_t data) {
+    pWriteCB(0x02, index);
+    pWriteCB(0x03, index>>8); pDelayCB();
+    pWriteCB(0x01, data); pDelayCB();
     //2 index
     //3 index>>8
     //1 data
@@ -116,11 +78,9 @@ int __stdcall fmwrite231(USHORT index, USHORT data) {
     return 0;
 }
 
-int __stdcall fmwrite21(USHORT index, USHORT data) {
-    buttio_wu8(&ioHand, fmBase+2, index);
-    QPCuWait(10);
-    buttio_wu8(&ioHand, fmBase+1, data);
-    QPCuWait(10);
+int __stdcall fmwrite21(uint16_t index, uint16_t data) {
+    pWriteCB(0x02, index); pDelayCB();
+    pWriteCB(0x01, data); pDelayCB();
     //2 index
     //1 data
     //dPrintfA("esfm a1:%X a2:%X\n", a1, a2);
@@ -131,84 +91,57 @@ int __stdcall fmwrite21(USHORT index, USHORT data) {
 
 
 
-#define IO_write8(PORT, DATA) buttio_wu8(&ioHand, fmBase+PORT, DATA); QPCuWait(10)
-void FM_startSynth() {
-    //these are probably not right
-    IO_write8(0x04, 72);
-    IO_write8(0x04, 72);
-    IO_write8(0x05, 0);
-    IO_write8(0x04, 127);
-    IO_write8(0x04, 127);
-    IO_write8(0x05, 0);
-    IO_write8(0x04, 54);
-    IO_write8(0x05, 119);//153
-    IO_write8(0x04, 107);
-    IO_write8(0x05, 0);
-    IO_write8(0x07, 66);
-    IO_write8(0x02, 5);
-    IO_write8(0x01, 128);
-}
 
-void FM_stopSynth() {
-    IO_write8(0x04, 72);
-    IO_write8(0x04, 72);
-    IO_write8(0x05, 16);
-    IO_write8(0x07, 98);
-}
 
 /*void synthInitNativeESFM() {
-    buttio_wu8(&ioHand, fmBase+0, 0x00);
-    QPCuWait(25);
-    buttio_wu8(&ioHand, fmBase+2, 0x05);
-    QPCuWait(25);
-    buttio_wu8(&ioHand, fmBase+1, 0x80);
-    QPCuWait(25);
+    pWriteCB(0x00, 0x00); pDelayCB();
+    pWriteCB(0x02, 0x05); pDelayCB();
+    pWriteCB(0x01, 0x80); pDelayCB();
 }*/
 
 
 
-BOOL esfm_init(USHORT port) {
-    assert(COUNTOF(bankArr) >= 1);
-    for (int i=0; i < COUNTOF(bankArr); i++) {
-        int size;
-        
-        if(bankArr[i].fileName[0] == '?') {
-            if (!strcmp("?malloc", bankArr[i].fileName)) {
-                bankArr[i].pData = malloc(BANKLEN);
-                bankArr[i].pData != NULL;
-            }
-        } else if (loadFile(bankArr[i].fileName, &bankArr[i].pData, &size)) {
-            assert(size == BANKLEN);
-            assert(bankArr[i].pData != NULL);
-        }
-    }
-    gBankMem = bankArr[0].pData;
-    curBank = 0;
+void esfm_init(uint8_t* pBank, FunWriteCB pfWr, FunDelayCB pfDly) {
+    esfm_setBank(pBank);
+    pWriteCB = pfWr;
+    pDelayCB = pfDly;
     
-    if (!buttio_init(&ioHand, NULL, BUTTIO_MET_DRIVERCALL)) return FALSE;
-    iopm_fillRange(&ioHand.iopm, port, port+0xF, TRUE);
-    buttio_flushIOPMChanges(&ioHand);
-    fmBase = port;
-    
-    FM_startSynth();
+    esfm_startupDevice();
+    esfm_resetFM();
+}
+
+void esfm_setBank(uint8_t* pBank) {
+    gBankMem = pBank;
+}
+
+void esfm_resetFM() {
     fmreset();
-    
-    return TRUE;
 }
 
-InstrBank* esfm_switchBank() {
-    if (COUNTOF(bankArr) == 1) return &bankArr[0];
-    curBank = (curBank + 1) % COUNTOF(bankArr);
-    gBankMem = bankArr[curBank].pData;
-    
-    return &bankArr[curBank];
+void esfm_startupDevice() {
+    //these are probably not right
+    pWriteCB(0x04, 72); pDelayCB();
+    pWriteCB(0x04, 72); pDelayCB();
+    pWriteCB(0x05, 0); pDelayCB();
+    pWriteCB(0x04, 127); pDelayCB();
+    pWriteCB(0x04, 127); pDelayCB();
+    pWriteCB(0x05, 0); pDelayCB();
+    pWriteCB(0x04, 54); pDelayCB();
+    pWriteCB(0x05, 119); pDelayCB(); //153
+    pWriteCB(0x04, 107); pDelayCB();
+    pWriteCB(0x05, 0); pDelayCB();
+    pWriteCB(0x07, 66); pDelayCB();
+    pWriteCB(0x02, 5); pDelayCB();
+    pWriteCB(0x01, 128); pDelayCB();
 }
 
-void esfm_shutdown() {
-    FM_stopSynth();
-    buttio_shutdown(&ioHand);
+void esfm_shutdownDevice() {
+    pWriteCB(0x04, 72); pDelayCB();
+    pWriteCB(0x04, 72); pDelayCB();
+    pWriteCB(0x05, 16); pDelayCB();
+    pWriteCB(0x07, 98); pDelayCB();
 }
 
-void esfm_midiShort(DWORD dwData) {
+void esfm_midiShort(uint32_t dwData) {
     MidiMessage(dwData);
 }
