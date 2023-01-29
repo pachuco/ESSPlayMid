@@ -83,13 +83,14 @@ void CALLBACK midiCB(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR
     BYTE data1;
     BYTE data2;
     
-    (void)hMidiIn;
-    (void)dwParam2;
+    (void)hMidiIn; (void)dwParam2;
     
     if(wMsg == MIM_DATA){
         status = (BYTE) ((dwParam1 & 0x000000FF)>>0);
         data1  = (BYTE) ((dwParam1 & 0x0000FF00)>>8);
         data2  = (BYTE) ((dwParam1 & 0x00FF0000)>>16);
+        
+        (void)(status); (void)(data1); (void)(data2);
         //printf("%02x %02x %02x\n", status, data1, data2);
         
         esfm_midiShort(dwParam1);
@@ -156,7 +157,7 @@ int main(int argc, char* argv[]) {
         printf("FM port %X\n", fmBase);
         
         assert(COUNTOF(bankArr) >= 1);
-        for (int i=0; i < COUNTOF(bankArr); i++) {
+        for (unsigned int i=0; i < COUNTOF(bankArr); i++) {
             int size;
             
             if(bankArr[i].fileName[0] == '?') {
