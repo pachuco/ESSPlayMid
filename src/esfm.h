@@ -1,7 +1,10 @@
 #pragma once
 #include <stdint.h>
 
-#define BANKLEN 8288 //may or may not be fixed value
+// deduced from PE/NE resource size in NT4 and win3.1 drivers
+// may not be fixed size if bank can be different
+#define BANKLEN 8288
+
 typedef void (*FunWriteCB)(uint8_t baseOffset, uint8_t data);
 typedef void (*FunDelayCB)(void);
 
