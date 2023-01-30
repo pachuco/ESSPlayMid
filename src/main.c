@@ -21,14 +21,22 @@ typedef struct {
 
 static USHORT fmBase = 0;
 static IOHandler ioHand = {0};
+static int curBank = 0;
+
+#define DYNFILE_POLL_TIME 500
+#define DYNFILE_FNAME "dynload.bin"
+static HANDLE dynFile_handle = INVALID_HANDLE_VALUE;
+static ULARGE_INTEGER dynFile_lastModifyTime = {0};
+static DWORD dynFile_lastCheckTime = 0;
+static BYTE* dynFile_bankData = NULL;
 
 static InstrBank bankArr[] = {
         {"bnk_common.bin", "Most commonly distributed with OS drivers and games.", NULL},
         {"bnk_NT4.bin", "NT4 driver.", NULL},
         
         //{"?malloc", "Malloc unsanitized memory special dish.", NULL},  //will crash, instrument data not sanitized
+        {"?dynfile", "Shared dynload.bin file that you can hex edit.", NULL}
 };
-static int curBank = 0;
 
 
 
@@ -44,7 +52,6 @@ void QPCuWait(DWORD uSecTime) { //KeStallExecutionProcessor
         wait = ((LONGLONG)uSecTime * freq)/(LONGLONG)1000000;
         QueryPerformanceCounter((PLARGE_INTEGER)&start);
         while (cur < (start + wait)) {
-            //__asm__("pause");
             QueryPerformanceCounter((PLARGE_INTEGER)&cur);
         }
     } else {
@@ -107,6 +114,17 @@ void printFmBankDescription(InstrBank* pBank) {
     printf("FM bank: \"%s\", %s\n", pBank->fileName, pBank->description);
 }
 
+BOOL updateDynFile() {
+    DWORD bytesRead = 0;
+    
+    if (dynFile_handle == INVALID_HANDLE_VALUE) return FALSE;
+    if (SetFilePointer(dynFile_handle, 0, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER) return FALSE;
+    if (!ReadFile(dynFile_handle, dynFile_bankData, BANKLEN, &bytesRead, NULL)) return FALSE;
+    if (bytesRead != BANKLEN) return FALSE;
+    
+    return TRUE;
+}
+
 void fmWriteCallback(BYTE baseOffset, BYTE data) {
     buttio_wu8(&ioHand, fmBase+baseOffset, data);
 }
@@ -161,9 +179,19 @@ int main(int argc, char* argv[]) {
             int size;
             
             if(bankArr[i].fileName[0] == '?') {
-                if (!strcmp("?malloc", bankArr[i].fileName)) {
+                char* fName = bankArr[i].fileName;
+                if        (!strcmp("?malloc", fName)) {
                     bankArr[i].pData = malloc(BANKLEN);
                     assert(bankArr[i].pData != NULL);
+                } else if (!strcmp("?dynfile", fName)) {
+                    dynFile_handle = CreateFileA(DYNFILE_FNAME, GENERIC_READ, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+                    assert(dynFile_handle != INVALID_HANDLE_VALUE);
+                    
+                    dynFile_bankData = malloc(BANKLEN);
+                    bankArr[i].pData = dynFile_bankData;
+                    
+                    assert(dynFile_bankData);
+                    assert(updateDynFile());
                 }
             } else if (loadFile(bankArr[i].fileName, &bankArr[i].pData, &size)) {
                 assert(size == BANKLEN);
@@ -214,6 +242,27 @@ int main(int argc, char* argv[]) {
                     default:
                 }
             }
+            
+            if (dynFile_handle != INVALID_HANDLE_VALUE) {
+                DWORD curTick = GetTickCount();
+                
+                if (curTick - dynFile_lastCheckTime >= DYNFILE_POLL_TIME) { //TODO: 49 day rollover check
+                    FILETIME checkedTime = {0};
+                    
+                    dynFile_lastCheckTime = curTick;
+                    if (GetFileTime(dynFile_handle, NULL, NULL, &checkedTime)) {
+                        ULARGE_INTEGER uliCheckedTime = {.LowPart = checkedTime.dwLowDateTime, .HighPart = checkedTime.dwHighDateTime};
+                        
+                        if (uliCheckedTime.QuadPart != dynFile_lastModifyTime.QuadPart) {
+                            dynFile_lastModifyTime.QuadPart = uliCheckedTime.QuadPart;
+                            updateDynFile();
+                        }
+                    }
+                }
+            }
+            
+            
+            
             SleepEx(50, TRUE);
         }
         

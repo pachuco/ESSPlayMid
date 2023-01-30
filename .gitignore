@@ -1,6 +1,7 @@
 /bin/*.exe
 /bin/*.obj
 /bin/*.sys
+/bin/dynload.bin
 *.log
 
 /rev/*.id0
