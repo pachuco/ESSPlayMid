@@ -4,6 +4,13 @@
 // deduced from PE/NE resource size in NT4 and win3.1 drivers
 // may not be fixed size if bank can be different
 #define BANKLEN 8288
+typedef struct {
+    uint16_t melodicOffsets[128];
+    uint16_t drumOffsets[128];
+    
+    uint8_t patchData[72 * 108];
+} MidiBank;
+
 
 typedef void (*FunWriteCB)(uint8_t baseOffset, uint8_t data);
 typedef void (*FunDelayCB)(void);
