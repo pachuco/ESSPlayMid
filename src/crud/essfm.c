@@ -14,22 +14,7 @@
 
 
 //not very accurate
-void QPCuWait(DWORD uSecTime) { //KeStallExecutionProcessor
-    static LONGLONG freq=0;
-    LONGLONG start=0, cur=0, wait=0;
-    
-    if (freq == 0) QueryPerformanceFrequency((PLARGE_INTEGER)&freq);
-    if (freq != 0) {
-        wait = ((LONGLONG)uSecTime * freq)/(LONGLONG)1000000;
-        QueryPerformanceCounter((PLARGE_INTEGER)&start);
-        while (cur < (start + wait)) {
-            YieldProcessor();
-            QueryPerformanceCounter((PLARGE_INTEGER)&cur);
-        }
-    } else {
-        //TODO: alternate timing mechanism
-    }
-}
+extern void QPCuWait(DWORD uSecTime);	//KeStallExecutionProcessor
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 //AUDDRIVE.SYS

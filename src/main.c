@@ -42,7 +42,6 @@ static InstrBank bankArr[] = {
 
 
 //not very accurate
-#ifndef _ESSFM_H_
 void QPCuWait(DWORD uSecTime) { //KeStallExecutionProcessor
     static LONGLONG freq=0;
     LONGLONG start=0, cur=0, wait=0;
@@ -58,7 +57,6 @@ void QPCuWait(DWORD uSecTime) { //KeStallExecutionProcessor
         //TODO: alternate timing mechanism
     }
 }
-#endif
 
 USHORT getPortConfig(const char* configName) {
     char configPath[MAX_PATH];
