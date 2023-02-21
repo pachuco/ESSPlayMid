@@ -1,3 +1,5 @@
+#ifndef _ESSFM_H_
+#define _ESSFM_H_
 #include <windows.h>
 #include <assert.h>
 #include "buttio.h"
@@ -25,3 +27,5 @@ void synthMidiQuiet(FmConfig* fmConf);
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 //AUDDRIVE.DLL
+
+#endif
