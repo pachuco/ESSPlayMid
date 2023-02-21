@@ -1,45 +1,45 @@
-#include <stdint.h>
 #include "esfm.h"
 
-extern __stdcall void MidiMessage(uint32_t dwData);
-extern __stdcall void fmreset();
-extern __stdcall void MidiAllNotesOff();
+extern void __stdcall MidiMessage(DWORD dwData);
+extern void __stdcall fmreset();
+extern void __stdcall MidiAllNotesOff();
 
-uint16_t fnum[] = {
+// Only used if ASM source
+#ifndef _ESSFM_H_
+USHORT fnum[] = {
     514, 544, 577, 611, 647, 686, 727, 770, 816, 864, 916, 970
 };
-uint8_t gbVelocityAtten[] = {
+BYTE gbVelocityAtten[] = {
     40, 36, 32, 28, 23, 21, 19, 17, 15, 14, 13, 12, 11,
     10, 9, 8, 7, 6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1, 1, 0,
     0, 0
 };
-uint32_t td_adjust__setup_operator[] = {
+DWORD td_adjust__setup_operator[] = {
     256, 242, 228, 215, 203, 192, 181, 171, 161, 152, 144, 136
 };
-uint8_t pmask__MidiPitchBend[] = {
+BYTE pmask__MidiPitchBend[] = {
     16, 32, 64, 128, 0, 0, 0, 0
 };
 
-uint8_t* gBankMem = 0;
-uint32_t v1 = 0;
-uint32_t v2 = 0;
-uint32_t timer[2] = {0};
+DWORD v1 = 0;
+DWORD v2 = 0;
+DWORD timer[2] = {0};
 
-uint8_t  voice_table[26 * (18+2)] = {0}; //TODO: struct
-uint8_t  gbVelLevel[16]           = {0};
-uint8_t  pan_mask[16]             = {0};
-uint8_t  gbChanAtten[16]          = {0};
-uint16_t giBend[16]               = {0};
-uint8_t  hold_table[16]           = {0};
-uint8_t  program_table[16]        = {0};
-uint8_t  gbChanVolume[16]         = {0};
-uint8_t  gbChanExpr[16]           = {0};
-uint8_t  gbChanBendRange[16]      = {0};
-uint8_t  byte_6BC09170[16+1]      = {0};
+BYTE  voice_table[26 * (18+2)] = {0}; //TODO: struct
+BYTE  gbVelLevel[16]           = {0};
+BYTE  pan_mask[16]             = {0};
+BYTE  gbChanAtten[16]          = {0};
+USHORT giBend[16]               = {0};
+BYTE  hold_table[16]           = {0};
+BYTE  program_table[16]        = {0};
+BYTE  gbChanVolume[16]         = {0};
+BYTE  gbChanExpr[16]           = {0};
+BYTE  gbChanBendRange[16]      = {0};
+BYTE  byte_6BC09170[16+1]      = {0};
 
+#endif
 
-
-
+BYTE* gBankMem = 0;
 
 
 
@@ -67,7 +67,7 @@ enum {
     P_INDEX_LO,
     P_INDEX_HI,
 };
-int __stdcall fmwrite231(uint16_t index, uint16_t data) {
+int __stdcall fmwrite231(USHORT index, USHORT data) {
     pWriteCB(0x02, index);
     pWriteCB(0x03, index>>8); pDelayCB();
     pWriteCB(0x01, data); pDelayCB();
@@ -78,7 +78,7 @@ int __stdcall fmwrite231(uint16_t index, uint16_t data) {
     return 0;
 }
 
-int __stdcall fmwrite21(uint16_t index, uint16_t data) {
+int __stdcall fmwrite21(USHORT index, USHORT data) {
     pWriteCB(0x02, index); pDelayCB();
     pWriteCB(0x01, data); pDelayCB();
     //2 index
@@ -101,7 +101,7 @@ int __stdcall fmwrite21(uint16_t index, uint16_t data) {
 
 
 
-void esfm_init(uint8_t* pBank, FunWriteCB pfWr, FunDelayCB pfDly) {
+void esfm_init(BYTE* pBank, FunWriteCB pfWr, FunDelayCB pfDly) {
     esfm_setBank(pBank);
     pWriteCB = pfWr;
     pDelayCB = pfDly;
@@ -110,7 +110,7 @@ void esfm_init(uint8_t* pBank, FunWriteCB pfWr, FunDelayCB pfDly) {
     esfm_resetFM();
 }
 
-void esfm_setBank(uint8_t* pBank) {
+void esfm_setBank(BYTE* pBank) {
     gBankMem = pBank;
 }
 
@@ -142,6 +142,6 @@ void esfm_shutdownDevice() {
     pWriteCB(0x07, 98); pDelayCB();
 }
 
-void esfm_midiShort(uint32_t dwData) {
+void esfm_midiShort(DWORD dwData) {
     MidiMessage(dwData);
 }

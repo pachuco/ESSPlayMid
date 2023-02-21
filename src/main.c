@@ -1,5 +1,4 @@
 #include <windows.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <assert.h>
 #include <conio.h>
@@ -43,6 +42,7 @@ static InstrBank bankArr[] = {
 
 
 //not very accurate
+#ifndef _ESSFM_H_
 void QPCuWait(DWORD uSecTime) { //KeStallExecutionProcessor
     static LONGLONG freq=0;
     LONGLONG start=0, cur=0, wait=0;
@@ -58,6 +58,7 @@ void QPCuWait(DWORD uSecTime) { //KeStallExecutionProcessor
         //TODO: alternate timing mechanism
     }
 }
+#endif
 
 USHORT getPortConfig(const char* configName) {
     char configPath[MAX_PATH];
@@ -143,10 +144,10 @@ int main(int argc, char* argv[]) {
         printUsage();
         return 0;
     } else if (!strcmp(argv[1], "-l")) {
-        UINT numMidiInDevs = midiInGetNumDevs();
+        UINT i, numMidiInDevs = midiInGetNumDevs();
         
         printf("Midi-in devices(%i total):\n", numMidiInDevs);
-        for (UINT i=0; i<numMidiInDevs; i++) {
+        for (i=0; i<numMidiInDevs; i++) {
             MIDIINCAPSA midiCaps = {0};
             
             if (midiInGetDevCapsA(i, &midiCaps, sizeof(MIDIINCAPSA)) == MMSYSERR_NOERROR) {
@@ -159,7 +160,8 @@ int main(int argc, char* argv[]) {
     } else {
         UINT devIndex = strtol(argv[1], NULL, 10);
         MidiInDevice midev = {0};
-        UINT errMidi = 0;
+        UINT i, errMidi = 0;
+		BOOL isRunning;
         
         if (!devIndex) {
             printUsage();
@@ -175,7 +177,7 @@ int main(int argc, char* argv[]) {
         printf("FM port %X\n", fmBase);
         
         assert(COUNTOF(bankArr) >= 1);
-        for (unsigned int i=0; i < COUNTOF(bankArr); i++) {
+        for (i=0; i < COUNTOF(bankArr); i++) {
             int size;
             
             if(bankArr[i].fileName[0] == '?') {
@@ -219,7 +221,7 @@ int main(int argc, char* argv[]) {
         esfm_init(bankArr[0].pData, &fmWriteCallback, &fmDelayCallback);
         printFmBankDescription(&bankArr[0]);
         
-        BOOL isRunning = TRUE;
+        isRunning = TRUE;
         while(isRunning) {
             if (kbhit()) {
                 unsigned char c = _getch();
@@ -240,6 +242,7 @@ int main(int argc, char* argv[]) {
                         isRunning = FALSE;
                         }break;
                     default:
+                    break;
                 }
             }
             
@@ -251,7 +254,7 @@ int main(int argc, char* argv[]) {
                     
                     dynFile_lastCheckTime = curTick;
                     if (GetFileTime(dynFile_handle, NULL, NULL, &checkedTime)) {
-                        ULARGE_INTEGER uliCheckedTime = {.LowPart = checkedTime.dwLowDateTime, .HighPart = checkedTime.dwHighDateTime};
+                        ULARGE_INTEGER uliCheckedTime = {checkedTime.dwLowDateTime, checkedTime.dwHighDateTime};
                         
                         if (uliCheckedTime.QuadPart != dynFile_lastModifyTime.QuadPart) {
                             dynFile_lastModifyTime.QuadPart = uliCheckedTime.QuadPart;
