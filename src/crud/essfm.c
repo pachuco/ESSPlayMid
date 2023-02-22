@@ -1,138 +1,171 @@
 #include <windows.h>
 #include <assert.h>
 #include "essfm.h"
-#include "buttio.h"
 
 #ifdef _MSC_VER
 #  ifndef STDCALL
 #    define STDCALL __stdcall 
 #  endif
 #  define static_assert(x,y)
-#else
-#  define YieldProcessor() __asm__("pause")
 #endif
 
-
-//not very accurate
-extern void QPCuWait(DWORD uSecTime);	//KeStallExecutionProcessor
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 //AUDDRIVE.SYS
 
-#define READ_PORT_UCHAR(CONF, PORT,  PDATA) buttio_ru8(&(CONF)->ioHand, (CONF)->port + (PORT), PDATA)
-#define WRITE_PORT_UCHAR(CONF, PORT, DATA)  buttio_wu8(&(CONF)->ioHand, (CONF)->port + (PORT), DATA)
+/*
+#include "iodriver.h"
 
-char FMRegs[608] = {0}; //!WARN FMREGLENGTH is 595
+// It's hardcoded base address in AUDDRIVE.SYS, so we do the same
+// on reconstructed source
+#define ESS_FMBASE	0x388
+#define FMREGLENGTH 595
+
+//
+// Devices - these values are also used as array indices
+//
+
+typedef enum {
+   WaveInDevice = 0,
+   WaveOutDevice,
+   MidiOutDevice,
+   MidiInDevice,
+   LineInDevice,
+   CDInternal,
+   MixerDevice,
+   NumberOfDevices
+} SOUND_DEVICES;
+
+BYTE FMRegs[608] = {0}; //!WARN FMREGLENGTH is 595
+
 SHORT Address_SynthMidiData[2] = {0};
 
 
-void synthInitNativeESFM(FmConfig* fmConf) {
-    WRITE_PORT_UCHAR(fmConf, 0, 0x00);
-    QPCuWait(25);
-    WRITE_PORT_UCHAR(fmConf, 2, 0x05);
-    QPCuWait(25);
-    WRITE_PORT_UCHAR(fmConf, 1, 0x80);
-    QPCuWait(25);
+void SynthInitNativeESFM(void) 
+{
+    WRITE_PORT_UCHAR(ESS_FMBASE + 0, 0x00);
+    KeStallExecutionProcessor(25);
+    WRITE_PORT_UCHAR(ESS_FMBASE + 2, 0x05);
+    KeStallExecutionProcessor(25);
+    WRITE_PORT_UCHAR(ESS_FMBASE + 1, 0x80);
+    KeStallExecutionProcessor(25);
 }
 
-void synthSaveESFM(FmConfig* fmConf)
+void SynthSaveESFM(PGLOBAL_DEVICE_INFO pGDI)
 {
 	UINT i;
 
-    for (i=0; i < FMREGLENGTH; i++) {
-        WRITE_PORT_UCHAR(fmConf, 2, i&0xFF);
-        QPCuWait(3);
-        WRITE_PORT_UCHAR(fmConf, 3, i>>8);
-        QPCuWait(3);
-        READ_PORT_UCHAR(fmConf, 1, &(fmConf->registers[i]));
-        QPCuWait(3);
-        WRITE_PORT_UCHAR(fmConf, 1, 0x00);
-        QPCuWait(3);
+    for (i=0; i < FMREGLENGTH; i++) 
+	{
+        WRITE_PORT_UCHAR(ESS_FMBASE + 2, i&0xFF);
+        KeStallExecutionProcessor(3);
+        WRITE_PORT_UCHAR(ESS_FMBASE + 3, i>>8);
+        KeStallExecutionProcessor(3);
+        FMRegs[i] = READ_PORT_UCHAR(ESS_FMBASE + 1);
+        KeStallExecutionProcessor(3);
+        WRITE_PORT_UCHAR(ESS_FMBASE + 1, 0x00);
+        KeStallExecutionProcessor(3);
     }
 }
 
-void synthRestoreESFM(FmConfig* fmConf) {
+void SynthRestoreESFM(PGLOBAL_DEVICE_INFO pGDI) 
+{
 	UINT i;
-    for (i=0; i < FMREGLENGTH; i++) {
-        WRITE_PORT_UCHAR(fmConf, 2, i&0xFF);
-        QPCuWait(3);
-        WRITE_PORT_UCHAR(fmConf, 3, i>>8);
-        QPCuWait(3);
-        WRITE_PORT_UCHAR(fmConf, 1, fmConf->registers[i]);
-        QPCuWait(3);
+
+    for (i=0; i < FMREGLENGTH; i++) 
+	{
+        WRITE_PORT_UCHAR(ESS_FMBASE + 2, i&0xFF);
+        KeStallExecutionProcessor(3);
+        WRITE_PORT_UCHAR(ESS_FMBASE + 3, i>>8);
+        KeStallExecutionProcessor(3);
+        WRITE_PORT_UCHAR(ESS_FMBASE + 1, FMRegs[i]);
+        KeStallExecutionProcessor(3);
     }
 }
 
-void synthMidiSendFM(FmConfig* fmConf, USHORT reg, UCHAR data) {
-    USHORT offHigh = (reg < 0x100) ? 0 : 2;
+void SynthMidiSendFM(PUCHAR PortBase, ULONG Address, UCHAR data) 
+{
+    USHORT offHigh = (Address < 0x100) ? 0 : 2;
     
-    WRITE_PORT_UCHAR(fmConf, 0 + offHigh, reg&0xFF);
-    QPCuWait(23);
-    WRITE_PORT_UCHAR(fmConf, 1 + offHigh, data);
-    QPCuWait(23);
+    WRITE_PORT_UCHAR(PortBase + offHigh, Address&0xFF);
+    KeStallExecutionProcessor(23);
+    WRITE_PORT_UCHAR(PortBase + offHigh + 1, data);
+    KeStallExecutionProcessor(23);
 }
 
-/*BOOL synthPresent(FmConfig* fmConf, PUCHAR inbase, BOOL *pIsFired) {
-    //!WARN check inbase usage
+BOOL SynthPresent(PUCHAR outPort, PUCHAR inbase, BOOLEAN *pIsFired) 
+{
     UCHAR t1, t2;
 
     if (pIsFired) *pIsFired = FALSE;
 
     // check if the chip is present
-    synthMidiSendFM(fmConf, 4, 0x60);
-    synthMidiSendFM(fmConf, 4, 0x80);
-    READ_PORT_UCHAR(fmConf, inbase, &t1);
-    synthMidiSendFM(fmConf, 2, 0xFF);
-    synthMidiSendFM(fmConf, 4, 0x21);
-    QPCuWait(200);
+    SynthMidiSendFM(outPort, 4, 0x60);
+    SynthMidiSendFM(outPort, 4, 0x80);
+    t1 = READ_PORT_UCHAR(outPort + inbase);
+    SynthMidiSendFM(outPort, 2, 0xFF);
+    SynthMidiSendFM(outPort, 4, 0x21);
+    KeStallExecutionProcessor(200);
 
     if (pIsFired && *pIsFired) return TRUE;
 
-    READ_PORT_UCHAR(fmConf, inbase, &t);
-    synthMidiSendFM(fmConf, 4, 0x60);
-    synthMidiSendFM(fmConf, 4, 0x80);
+    t2 = READ_PORT_UCHAR(inbase);
+    SynthMidiSendFM(outPort, 4, 0x60);
+    SynthMidiSendFM(outPort, 4, 0x80);
 
-    if (!((t1 & 0xE0) == 0) || !((t2 & 0xE0) == 0xC0)) return FALSE;
+    if (t1 & 0xE0 || (t2 & 0xE0) != 0xC0) return FALSE;
 
     return TRUE;
-}*/
+}
 
-/*BOOL SynthMidiIsOpl3(FmConfig* fmConf, BOOLEAN *isFired) {
-  BOOL isOpl3 = 0;
+BOOLEAN SynthMidiIsOpl3(PSYNTH_HARDWARE pHw, BOOLEAN *isFired)
+{
+	BOOLEAN isOpl3;
+	PUCHAR Port = pHw->SynthBase:
 
-  SynthMidiSendFM(pHw->SynthBase, 0x105, 0);
-  QPCuWait(20);
-  if (SynthPresent(base + 2, base, isFired) ) {
-    SynthMidiSendFM(base, 0x105, 1);
-    QPCuWait(20);
-    if (!SynthPresent(base + 2, base, isFired) ) isOpl3 = 1;
+	SynthMidiSendFM(pHw->SynthBase, 0x105, 0);
+	KeStallExecutionProcessor(20);
+	if (SynthPresent(Port + 2, Port, isFired) ) 
+	{
+		SynthMidiSendFM(Port, 0x105, 1);
+		KeStallExecutionProcessor(20);
+		if (!SynthPresent(Port + 2, Port, isFired) ) 
+			isOpl3 = TRUE;
+	}
   }
-  SynthMidiSendFM(base, 0x105, 0);
-  QPCuWait(20);
+  SynthMidiSendFM(Port, 0x105, 0);
+  KeStallExecutionProcessor(20);
   return isOpl3;
-}*/
+}
 
-void synthMidiQuiet(FmConfig* fmConf) {
+void SynthMidiQuiet(UCHAR deviceIndex, PSYNTH_HARDWARE pHw)
+{
 	UINT i;
 
-    synthMidiSendFM(fmConf, 0x105, 0x01);
-    synthMidiSendFM(fmConf, 0x004, 0x60);
-    synthMidiSendFM(fmConf, 0x104, 0x3F);
-    synthMidiSendFM(fmConf, 0x008, 0x00);
-    synthMidiSendFM(fmConf, 0x0BD, 0xC0);
+	if (deviceIndex != MixerDevice) return;
+
+    SynthMidiSendFM(pHw->SynthBase, 0x105, 0x01);
+    SynthMidiSendFM(pHw->SynthBase, 0x004, 0x60);
+    SynthMidiSendFM(pHw->SynthBase, 0x104, 0x3F);
+    SynthMidiSendFM(pHw->SynthBase, 0x008, 0x00);
+    SynthMidiSendFM(pHw->SynthBase, 0x0BD, 0xC0);
     
-    for (i=0; i < 21; i++) {
-        synthMidiSendFM(fmConf, 0x040 + i, 0x3F);
-        synthMidiSendFM(fmConf, 0x140 + i, 0x3F);
+    for (i=0; i < 21; i++) 
+	{
+        SynthMidiSendFM(fmConf, 0x040 + i, 0x3F);
+        SynthMidiSendFM(fmConf, 0x140 + i, 0x3F);
     }
     
-    for (i=0; i < 8; i++) {
-        synthMidiSendFM(fmConf, 0x0B0 + i, 0);
-        synthMidiSendFM(fmConf, 0x1B0 + i, 0x00);
+    for (i=0; i < 8; i++) 
+	{
+        SynthMidiSendFM(pHw->SynthBase, 0x0B0 + i, 0);
+        SynthMidiSendFM(pHw->SynthBase, 0x1B0 + i, 0x00);
     }
 }
 
-void SynthMidiData(FmConfig* fmConf, USHORT address, BYTE data) {
+/*
+void SynthMidiData(FmConfig* fmConf, USHORT address, BYTE data) 
+{
     //!WARN driver MajorFunction
 
     //assert(v8 & 3);
@@ -146,9 +179,10 @@ void SynthMidiData(FmConfig* fmConf, USHORT address, BYTE data) {
     } else {
         FMRegs[Address_SynthMidiData[0]] = data;
     }
-    //QPCuWait(23); //OPL2
-    QPCuWait(10); //OPL3, etc.
+    //KeStallExecutionProcessor(23); //OPL2
+    KeStallExecutionProcessor(10); //OPL3, etc.
 }
+*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 //AUDDRIVE.DLL
@@ -399,7 +433,7 @@ void voice_on(int voiceNr)
     }
     else 
     {
-        fmwrite(voiceNr + 0x240, 1);
+        fmwrite((USHORT)voiceNr + 0x240, 1);
     }
 }
 
@@ -420,7 +454,7 @@ void voice_off(int voiceNr)
     }
     else
     {
-        fmwrite(voiceNr + 0x240, 0);
+        fmwrite((USHORT)voiceNr + 0x240, 0);
     }
     voice_table[voiceNr].flags1 = 2;
     voice_table[voiceNr].timer = (USHORT)gwTimer;
@@ -511,7 +545,7 @@ void NATV_CalcNewVolume(BYTE bChannel)
         {
             for (j=0; j < sizeof(voice->channel); j++)
             {
-                fmwrite(offset, NATV_CalcVolume(voice->reg1[j], (voice->rel_vel & 3), voice->channel));
+                fmwrite((USHORT)offset, NATV_CalcVolume(voice->reg1[j], (voice->rel_vel & 3), voice->channel));
                 offset += 8;
             }
         }

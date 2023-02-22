@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <conio.h>
 #include "util.h"
-#include "buttio.h"
+#include "iodriver.h"
 #include "esfm.h"
 
 typedef struct {
@@ -19,7 +19,6 @@ typedef struct {
 } InstrBank;
 
 static USHORT fmBase = 0;
-static IOHandler ioHand = {0};
 static int curBank = 0;
 
 #define DYNFILE_POLL_TIME 500
@@ -125,10 +124,10 @@ BOOL updateDynFile() {
 }
 
 void fmWriteCallback(BYTE baseOffset, BYTE data) {
-    buttio_wu8(&ioHand, fmBase+baseOffset, data);
+    WRITE_PORT_UCHAR((fmBase+baseOffset), data);
 }
 
-void fmDelayCallback() {
+void fmDelayCallback(void) {
     QPCuWait(10);
 }
 
@@ -200,19 +199,17 @@ int main(int argc, char* argv[]) {
         }
         curBank = 0;
             
-        if (!buttio_init(&ioHand, NULL, BUTTIO_MET_IOPM)) {
-            printf("Buttio init error!\n");
+        if (!IODriver_Init(fmBase, fmBase+0xF)) {
+            printf("IO driver init error!\n");
             return 1;
         }
-        iopm_fillRange(&ioHand.iopm, fmBase, fmBase+0xF, TRUE);
-        buttio_flushIOPMChanges(&ioHand);
         
         errMidi |= midiInGetDevCapsA(midev.index, &midev.caps, sizeof(MIDIINCAPSA));
         errMidi |= midiInOpen(&midev.hmi, midev.index, (DWORD_PTR)&midiCB, (DWORD_PTR)&midev, CALLBACK_FUNCTION);
         errMidi |= midiInStart(midev.hmi);
         if (errMidi) {
             printf("Midi-in init error!\n");
-            buttio_shutdown(&ioHand);
+            IODriver_Exit();
             return 1;
         };
         
@@ -271,7 +268,7 @@ int main(int argc, char* argv[]) {
         midiInClose(midev.hmi);
         
         //SleepEx(2000, 1);
-        buttio_shutdown(&ioHand);
+        IODriver_Exit();
     }
     
     return 0;
