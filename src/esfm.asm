@@ -29,23 +29,23 @@ Voice       ends
 
 
 ; export
-public _MidiMessage@4
 public _MidiPitchBend@8
-public _MidiCalcFAndB@8
+extrn _MidiCalcFAndB@8:proc
 public _NATV_CalcVolume@12
 public _NATV_CalcNewVolume@4
 public _NATV_CalcBend@12
-public _voice_off@4
-public _note_off@8
+extrn _voice_off@4:proc
+extrn _note_off@8:proc
 public _note_on@12
 public _setup_voice@20
 public _find_voice@16
 public _steal_voice@4
 public _setup_operator@36
-public _voice_on@4
+extrn _voice_on@4:proc
 public _hold_controller@8
 public _fmreset@0
 public _MidiAllNotesOff@0
+public _MidiMessage@4
 
 ; import
 extrn _fnum:word
@@ -56,7 +56,7 @@ extrn _pmask__MidiPitchBend:byte
 extrn _gBankMem:dword
 extrn _v1:dword
 extrn _v2:dword
-extrn _timer:dword
+extrn _gwTimer:dword
 
 extrn _voice_table:Voice
 extrn _gbVelLevel:byte
@@ -68,7 +68,7 @@ extrn _program_table:byte
 extrn _gbChanVolume:byte
 extrn _gbChanExpr:byte
 extrn _gbChanBendRange:byte
-extrn _byte_6BC09170:byte
+extrn _note_offs:byte
 
 
 extrn _fmwrite231@8:proc
@@ -505,7 +505,7 @@ _MidiPitchBend@8 endp
 
 
 ; __stdcall MidiCalcFAndB(x, x)
-_MidiCalcFAndB@8 proc near      ; CODE XREF: setup_operator(x,x,x,x,x,x,x,x,x)+200p
+ZZZ_MidiCalcFAndB@8 proc near      ; CODE XREF: setup_operator(x,x,x,x,x,x,x,x,x)+200p
                     ; MidiPitchBend(x,x)+8Ap
 
 arg_0       = dword ptr  8
@@ -535,7 +535,7 @@ loc_6BC06636:               ; CODE XREF: MidiCalcFAndB(x,x)+1Aj
         or  eax, ecx
         pop ebp
         retn    8
-_MidiCalcFAndB@8 endp
+ZZZ_MidiCalcFAndB@8 endp
 
 
 
@@ -920,7 +920,7 @@ _NATV_CalcBend@12 endp
 
 
 ; void __stdcall voice_off(signed int a2)
-_voice_off@4    proc near       ; CODE XREF: note_off(x,x)+35p
+ZZZ_voice_off@4    proc near       ; CODE XREF: note_off(x,x)+35p
                     ; find_voice(x,x,x,x)+3Ap ...
 
 a2      = dword ptr  4
@@ -954,14 +954,14 @@ loc_6BC05EE9:               ; CODE XREF: voice_off(x)+13j
                     ; voice_off(x)+28j
         call    _fmwrite231@8   ; fmwrite(x,x)
         mov eax, esi
-        mov cx, word ptr _timer
+        mov cx, word ptr _gwTimer
         imul    eax, 1Ah
-        inc word ptr _timer
+        inc word ptr _gwTimer
         pop esi
         mov byte ptr _voice_table.flags1[eax], 2
         mov _voice_table.timer[eax], cx
         retn    4
-_voice_off@4    endp
+ZZZ_voice_off@4    endp
 
 
 
@@ -1015,7 +1015,7 @@ _voice_off@4    endp
 
 
 ; void __stdcall note_off(unsigned __int8 bChannel, char a2)
-_note_off@8 proc near       ; CODE XREF: MidiAllNotesOff()+Dp
+ZZZ_note_off@8 proc near       ; CODE XREF: MidiAllNotesOff()+Dp
                     ; MidiMessage(x)+297p
 
 bChannel    = byte ptr  4
@@ -1059,7 +1059,7 @@ loc_6BC05F4E:               ; CODE XREF: note_off(x,x)+12j
         pop esi
         pop ebx
         retn    8
-_note_off@8 endp
+ZZZ_note_off@8 endp
 
 
 
@@ -1254,9 +1254,9 @@ loc_6BC06BD3:               ; CODE XREF: note_on(x,x,x)+60j
         movzx   eax, [ebp+channel]
         mov cl, [ebp+arg_8]
         mov _gbVelLevel[eax], cl
-        inc _byte_6BC09170[eax]
-        movzx   ecx, _byte_6BC09170[eax]
-        lea eax, _byte_6BC09170[eax]
+        inc _note_offs[eax]
+        movzx   ecx, _note_offs[eax]
+        lea eax, _note_offs[eax]
         cmp ecx, 100h
         jnz short loc_6BC06BFE
         and byte ptr [eax], 0
@@ -1376,8 +1376,8 @@ a2      = dword ptr  18h
         mov _voice_table.field_10[eax], cl
         mov cl, [ebp+var_1]
         mov _voice_table.flags2[eax], cl
-        mov cx, word ptr _timer
-        inc word ptr _timer
+        mov cx, word ptr _gwTimer
+        inc word ptr _gwTimer
         mov byte ptr _voice_table.flags1[eax], 1
         mov _voice_table.timer[eax], cx
         mov cl, byte ptr [ebp+a6]
@@ -1434,7 +1434,7 @@ loc_6BC05F9F:               ; CODE XREF: find_voice(x,x,x,x)+2Ej
         jnz short loc_6BC05FDB
 
 loc_6BC05FA4:               ; CODE XREF: find_voice(x,x,x,x)+25j
-        mov ax, word ptr _timer
+        mov ax, word ptr _gwTimer
         sub ax, [esi+2]
         cmp ax, bx
         jb  short loc_6BC05FCC
@@ -1477,7 +1477,7 @@ loc_6BC06011:               ; CODE XREF: find_voice(x,x,x,x)+9Dj
         jnz short loc_6BC0605E
 
 loc_6BC0601A:               ; CODE XREF: find_voice(x,x,x,x)+91j
-        mov eax, _timer
+        mov eax, _gwTimer
         sub eax, dword ptr _voice_table.timer+1A0h
         cmp [ebp+a1], 0
         jnz short loc_6BC06049
@@ -1521,7 +1521,7 @@ loc_6BC06088:               ; CODE XREF: find_voice(x,x,x,x)+114j
         jnz short loc_6BC060D4
 
 loc_6BC06091:               ; CODE XREF: find_voice(x,x,x,x)+108j
-        mov eax, _timer
+        mov eax, _gwTimer
         xor ecx, ecx
         sub eax, dword ptr _voice_table.timer+1BAh
         cmp [ebp+a1], ecx
@@ -1597,7 +1597,7 @@ loc_6BC06108:               ; CODE XREF: steal_voice(x)+7Fj
         mov edx, [ebp+var_10]
 
 loc_6BC0610B:               ; CODE XREF: steal_voice(x)+2Aj
-        mov si, word ptr _timer
+        mov si, word ptr _gwTimer
         mov cl, [edx]
         sub si, [edx-2]
         cmp cl, 9
@@ -1964,7 +1964,7 @@ _setup_operator@36 endp
 
 
 ; void __stdcall voice_on(signed int voiceNr)
-_voice_on@4 proc near       ; CODE XREF: note_on(x,x,x)+F3p
+ZZZ_voice_on@4 proc near       ; CODE XREF: note_on(x,x,x)+F3p
                     ; note_on(x,x,x)+189p ...
 
 voiceNr     = dword ptr  4
@@ -1997,7 +1997,7 @@ loc_6BC061A7:               ; CODE XREF: voice_on(x)+11j
                     ; voice_on(x)+26j
         call    _fmwrite231@8   ; fmwrite(x,x)
         retn    4
-_voice_on@4 endp
+ZZZ_voice_on@4 endp
 
 
 
@@ -2120,7 +2120,7 @@ loc_6BC05E74:               ; CODE XREF: fmreset()+AEj
         add eax, 1Ah
         cmp eax, (offset _voice_table.flags1+1D4h)
         jl  short loc_6BC05E74
-        mov word ptr _timer, cx
+        mov word ptr _gwTimer, cx
         pop edi
         retn
 _fmreset@0  endp
