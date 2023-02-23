@@ -29,7 +29,7 @@ Voice       ends
 
 
 ; export
-public _MidiPitchBend@8
+extrn _MidiPitchBend@8:proc
 extrn _MidiCalcFAndB@8:proc
 extrn _NATV_CalcVolume@12:proc
 public _NATV_CalcNewVolume@4
@@ -51,7 +51,7 @@ public _MidiMessage@4
 extrn _fnum:word
 extrn _gbVelocityAtten:byte
 extrn _td_adjust__setup_operator:dword
-extrn _pmask__MidiPitchBend:byte
+extrn _pmask_MidiPitchBend:byte
 
 extrn _gBankMem:dword
 extrn _v1:dword
@@ -400,7 +400,7 @@ _MidiMessage@4  endp
 
 
 ; void __stdcall MidiPitchBend(BYTE bChannel, int iBend)
-_MidiPitchBend@8 proc near      ; CODE XREF: MidiMessage(x)+66p
+ZZZ_MidiPitchBend@8 proc near      ; CODE XREF: MidiMessage(x)+66p
 
 var_1C      = dword ptr -1Ch
 i       = dword ptr -18h
@@ -438,7 +438,7 @@ loc_6BC06C84:               ; CODE XREF: MidiPitchBend(x,x)+ECj
         mov [ebp+var_4], edi
 
 loc_6BC06CA5:               ; CODE XREF: MidiPitchBend(x,x)+D5j
-        mov al, _pmask__MidiPitchBend[edi]
+        mov al, _pmask_MidiPitchBend[edi]
         test    [esi+10h], al
         jnz short loc_6BC06D21
         movzx   ax, byte ptr _gbChanBendRange[ebx]
@@ -497,7 +497,7 @@ loc_6BC06D2F:               ; CODE XREF: MidiPitchBend(x,x)+36j
         pop ebx
         leave
         retn    8
-_MidiPitchBend@8 endp
+ZZZ_MidiPitchBend@8 endp
 
 
 

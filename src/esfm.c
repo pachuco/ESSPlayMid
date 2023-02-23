@@ -27,7 +27,6 @@ typedef struct {
 void __stdcall hold_controller(uint8_t channel, uint8_t bVelocity);
 void __stdcall fmreset();
 void __stdcall NATV_CalcNewVolume(uint8_t bChannel);
-void __stdcall MidiPitchBend(uint8_t bChannel, uint16_t iBend);
 void __stdcall find_voice(bool patch1617_allowed_voice1, bool patch1617_allowed_voice2, uint8_t bChannel, uint8_t bNote);
 int  __stdcall steal_voice(int patch1617_allowed);
 void __stdcall setup_operator(int offset, int bNote, int bVelocity, uint16_t reg, int fixed_pitch, int rel_velocity, int channel, int operator, int voicenr);
@@ -48,9 +47,6 @@ uint8_t gbVelocityAtten[] = {
 };
 uint32_t td_adjust__setup_operator[] = {
     256, 242, 228, 215, 203, 192, 181, 171, 161, 152, 144, 136
-};
-uint8_t pmask__MidiPitchBend[] = {
-    16, 32, 64, 128, 0, 0, 0, 0
 };
 
 uint32_t v1 = 0;
@@ -373,6 +369,7 @@ void __stdcall MidiMessage(uint32_t dwData)
 }
 */
 
+int16_t __stdcall NATV_CalcBend(uint16_t detune, int16_t iBend, uint16_t iBendRange);
 /*int16_t __stdcall NATV_CalcBend(uint16_t detune, int16_t iBend, uint16_t iBendRange)
 {
 static uint16_t NATV_table1[64] = {
@@ -519,6 +516,33 @@ uint8_t __stdcall NATV_CalcVolume(uint8_t reg1, uint8_t rel_velocity, uint8_t ch
 }
 
 
+//todo: shove it in after ASM decoupling
+    /*static*/ uint8_t pmask_MidiPitchBend[] = {
+        16, 32, 64, 128, 0, 0, 0, 0
+    };
+void __stdcall MidiPitchBend(uint8_t bChannel, uint16_t iBend) {
+
+    
+    uint32_t i, j;
+    
+    giBend[bChannel] = iBend;
+    for (i=0; i < sizeof(voice_table)/sizeof(voice_table[0]); i++) {
+		Voice *voice = &voice_table[i];
+        
+        if (voice->channel == bChannel && voice->flags1 & 1) {
+            for (j=0; j < sizeof(voice->reg5); j++) {
+                if ((pmask_MidiPitchBend[j] & voice->patch_flag) == 0) {
+                    int16_t bnd;
+                    
+                    bnd = NATV_CalcBend(voice->detune[j], iBend, gbChanBendRange[bChannel]);
+                    bnd = MidiCalcFAndB(bnd, (voice->reg5[j] >> 2) & 7);
+                    fmwrite231(i*32 + j*8 + 5, (voice->reg5[j] & 0xE0) | (bnd>>8));
+                    fmwrite231(i*32 + j*8 + 4, bnd & 0xFF);
+                }
+            }
+        }
+    }
+}
 
 
 
