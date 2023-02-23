@@ -12,7 +12,7 @@ set buttiolocation=C:\p_files\prog\_proj\CodeCocks\buttio
 set opts=-std=c11 -mconsole -g -Wall -Wextra -DNONMMAP_FALLBACK -DASM_SRC
 set linkinc=-I%buttiolocation%\src\ -L%buttiolocation%\bin\
 set linkinc=%linkinc% -lwinmm -lbuttio
-set compiles=bin\esfm.obj src\main.c src\esfm.c src\util.c
+set compiles=bin\esfm.obj src\main.c src\iodriver.c src\esfm.c src\util.c
 set errlog=.\essmidi_err.log
 set out=.\bin\essmidi.exe
 

@@ -33,7 +33,7 @@ static InstrBank bankArr[] = {
         {"bnk_NT4.bin", "NT4 driver.", NULL},
         
         //{"?malloc", "Malloc unsanitized memory special dish.", NULL},  //will crash, instrument data not sanitized
-        {"?dynfile", "Shared dynload.bin file that you can hex edit.", NULL}
+        //{"?dynfile", "Shared dynload.bin file that you can hex edit.", NULL}
 };
 
 
