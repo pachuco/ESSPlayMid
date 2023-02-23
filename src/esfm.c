@@ -26,12 +26,8 @@ typedef struct {
 
 void __stdcall hold_controller(uint8_t channel, uint8_t bVelocity);
 void __stdcall fmreset();
-void __stdcall NATV_CalcNewVolume(uint8_t bChannel);
 void __stdcall find_voice(bool patch1617_allowed_voice1, bool patch1617_allowed_voice2, uint8_t bChannel, uint8_t bNote);
 int  __stdcall steal_voice(int patch1617_allowed);
-void __stdcall setup_operator(int offset, int bNote, int bVelocity, uint16_t reg, int fixed_pitch, int rel_velocity, int channel, int operator, int voicenr);
-void __stdcall setup_voice(int voicenr, int offset, int channel, int bNote, int bVelocity);
-void __stdcall MidiMessage(uint32_t dwData);
 
 
 // Only used if ASM source
@@ -44,9 +40,6 @@ uint8_t gbVelocityAtten[] = {
     40, 36, 32, 28, 23, 21, 19, 17, 15, 14, 13, 12, 11,
     10, 9, 8, 7, 6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1, 1, 0,
     0, 0
-};
-uint32_t td_adjust__setup_operator[] = {
-    256, 242, 228, 215, 203, 192, 181, 171, 161, 152, 144, 136
 };
 
 uint32_t v1 = 0;
@@ -115,66 +108,6 @@ int __stdcall fmwrite21(uint16_t index, uint16_t data) {
     //dPrintfA("esfm a1:%X a2:%X\n", a1, a2);
     return 0;
 }
-
-
-
-
-
-
-
-/*void synthInitNativeESFM() {
-    pWriteCB(0x00, 0x00); pDelayCB();
-    pWriteCB(0x02, 0x05); pDelayCB();
-    pWriteCB(0x01, 0x80); pDelayCB();
-}*/
-
-
-
-void esfm_init(uint8_t* pBank, FunWriteCB pfWr, FunDelayCB pfDly) {
-    esfm_setBank(pBank);
-    pWriteCB = pfWr;
-    pDelayCB = pfDly;
-    
-    esfm_startupDevice();
-    esfm_resetFM();
-}
-
-void esfm_setBank(uint8_t* pBank) {
-    gBankMem = pBank;
-}
-
-void esfm_resetFM() {
-    fmreset();
-}
-
-void esfm_startupDevice() {
-    //these are probably not right
-    pWriteCB(0x04, 72); pDelayCB();
-    pWriteCB(0x04, 72); pDelayCB();
-    pWriteCB(0x05, 0); pDelayCB();
-    pWriteCB(0x04, 127); pDelayCB();
-    pWriteCB(0x04, 127); pDelayCB();
-    pWriteCB(0x05, 0); pDelayCB();
-    pWriteCB(0x04, 54); pDelayCB();
-    pWriteCB(0x05, 119); pDelayCB(); //153
-    pWriteCB(0x04, 107); pDelayCB();
-    pWriteCB(0x05, 0); pDelayCB();
-    pWriteCB(0x07, 66); pDelayCB();
-    pWriteCB(0x02, 5); pDelayCB();
-    pWriteCB(0x01, 128); pDelayCB();
-}
-
-void esfm_shutdownDevice() {
-    pWriteCB(0x04, 72); pDelayCB();
-    pWriteCB(0x04, 72); pDelayCB();
-    pWriteCB(0x05, 16); pDelayCB();
-    pWriteCB(0x07, 98); pDelayCB();
-}
-
-void esfm_midiShort(uint32_t dwData) {
-    MidiMessage(dwData);
-}
-
 
 
 
@@ -385,7 +318,24 @@ uint8_t __stdcall NATV_CalcVolume(uint8_t reg1, uint8_t rel_velocity, uint8_t ch
     return vol | (reg1 & 0xC0);      // KSL
 }
 
-//void NATV_CalcNewVolume(BYTE bChannel)
+void __stdcall NATV_CalcNewVolume(uint8_t bChannel)
+{
+    uint32_t i, j, offset;
+
+    for (i=0, offset=1; i < sizeof(voice_table)/sizeof(voice_table[0]); i++) //COUNTOF()
+    {
+        Voice *voice = &voice_table[i];
+        
+        if ((voice->flags1 & 1) && (voice->channel == bChannel || bChannel == 0xFF)) 
+        {
+            for (j=0; j < sizeof(voice->channel); j++)
+            {
+                fmwrite231((uint16_t)offset, NATV_CalcVolume(voice->reg1[j], (voice->rel_vel & 3), voice->channel));
+                offset += 8;
+            }
+        }
+    }   
+}
 
 //todo: shove it in after ASM decoupling
     /*static*/ uint8_t pmask_MidiPitchBend[] = {
@@ -417,9 +367,122 @@ void __stdcall MidiPitchBend(uint8_t bChannel, uint16_t iBend) {
 
 //void find_voice(BOOL patch1617_allowed_voice1, BOOL patch1617_allowed_voice2, BYTE bChannel, BYTE bNote)
 //int steal_voice(int patch1617_allowed)
-//void setup_operator(int offset, int bNote, int bVelocity, USHORT reg, int fixed_pitch, int rel_velocity, int channel, int oper, int voicenr)
-//void setup_voice(int voicenr, int offset, int channel, int bNote, int bVelocity)
 
+
+    //TODO: shove it in
+    /*static*/ uint32_t td_adjust_setup_operator[] = {
+        256, 242, 228, 215, 203, 192, 181, 171, 161, 152, 144, 136
+    };
+void __stdcall setup_operator(int offset, int bNote, int bVelocity, uint16_t reg, int fixed_pitch, int rel_velocity, int channel, int oper, int voicenr);
+/*
+void __stdcall setup_operator(int offset, int bNote, int bVelocity, uint16_t reg, int fixed_pitch, int rel_velocity, int channel, int oper, int voicenr) {
+    int panmask, note, transpose, block, notemod12, reg1, detune;
+    uint16_t fnum_block;
+    uint8_t reg4, reg5;
+    
+    panmask = pan_mask[channel];
+    fmwrite231(reg + 7, 0);
+    
+    if (fixed_pitch)
+    {
+        note = bNote;
+    }
+    else
+    {
+        transpose = ((((gBankMem[offset + 5]) << 2) & 0x7F) | (gBankMem[offset + 4] & 3));
+        if (gBankMem[offset + 5] & 0x10) // signed?
+            transpose |= ~0x7F;
+        note = transpose + bNote;
+    }
+    
+    if ( note < 19 )
+        note += 12 * ((18 - note) / 12u) + 12;
+    if ( note > 114 )
+        note += -12 - 12 * ((note - 115) / 12u);
+    block = (note - 19) / 12;
+    notemod12 = (note - 19) % 12;
+    
+    fmwrite231(reg, gBankMem[offset]);
+    
+    switch ( rel_velocity )
+    {
+    case 0:
+    default:
+        reg1 = 0;
+        break;
+    case 1:
+        reg1 = (127 - bVelocity) >> 4;
+        break;
+    case 2:
+        reg1 = (127 - bVelocity) >> 3;
+        break;
+    case 3:
+        if ( bVelocity < 64 )
+            reg1 = ((63 - bVelocity) >> 1) + 16;
+        else
+            reg1 = (127 - bVelocity) >> 2;
+        break;
+    }
+    reg1 += (gBankMem[offset + 1] & 0x3F); // Attenuation
+    //if (reg1 > 63) *((*uint8_t)(&reg1)) = 63; //WARN: what did the decompiler mean here?
+    if (reg1 > 63) reg1 = 63;
+    reg1 += (gBankMem[offset + 1] & 0xC0); // KSL
+    voice_table[voicenr].reg1[oper] = (uint8_t)reg1;
+    
+    fmwrite231(reg + 1, NATV_CalcVolume((uint8_t)reg1, rel_velocity, channel));
+    fmwrite231(reg + 2, gBankMem[offset + 2]);
+    fmwrite231(reg + 3, gBankMem[offset + 3]);
+    
+    if ( fixed_pitch )
+    {
+        reg4 = gBankMem[offset + 4];
+        reg5 = gBankMem[offset + 5];
+    }
+    else
+    {
+        detune = gBankMem[offset + 4] & (~3);
+        if (detune)
+        {
+            detune = ((detune >> 2) * td_adjust_setup_operator[notemod12]) >> 8;
+            if (block > 1) 
+                detune >>= block - 1;
+        }
+        detune += notemod12;
+        voice_table[voicenr].reg5[oper] = (((detune >> 8) & 3) | (gBankMem[offset + 5] & 0xE0) | (block << 2)); // detune | delay | block
+        fnum_block = MidiCalcFAndB(NATV_CalcBend(detune, giBend[channel], gbChanBendRange[channel]), block);
+        reg4 = (uint8_t)fnum_block;
+        reg5 = (uint8_t)(fnum_block >> 8) | (voice_table[voicenr].reg5[oper] & 0xE0);
+        voice_table[voicenr].detune[oper] = (uint8_t)detune;
+    }
+    fmwrite231(reg + 4, reg4);
+    fmwrite231(reg + 5, reg5);
+    fmwrite231(reg + 5, ((gBankMem[offset + 6] & 0x30) && panmask != 0x30)?(panmask | (gBankMem[offset + 6] & 0xCF)):gBankMem[offset + 6]);
+    fmwrite231(reg + 7, gBankMem[offset + 7]);
+}*/
+
+void __stdcall setup_voice(int voicenr, int offset, int channel, int bNote, int bVelocity) {
+    uint8_t rel_vel, flags;
+    
+    flags   = gBankMem[offset];
+    rel_vel = gBankMem[offset + 3];
+    offset += 4;
+    setup_operator(offset     , bNote, bVelocity, 32 * voicenr     , flags & 0x10, rel_vel        & 3, channel, 0, voicenr);
+    setup_operator(offset + 8 , bNote, bVelocity, 32 * voicenr + 8 , flags & 0x20, (rel_vel >> 2) & 3, channel, 1, voicenr);
+    setup_operator(offset + 16, bNote, bVelocity, 32 * voicenr + 16, flags & 0x40, (rel_vel >> 4) & 3, channel, 2, voicenr);
+    setup_operator(offset + 24, bNote, bVelocity, 32 * voicenr + 24, flags & 0x80, (rel_vel >> 6) & 3, channel, 3, voicenr);
+
+    voice_table[voicenr].patch_flag = flags;
+    voice_table[voicenr].rel_vel = rel_vel;
+    voice_table[voicenr].timer = gwTimer;
+    voice_table[voicenr].bNote = bNote;
+    voice_table[voicenr].flags1 = 1;
+    voice_table[voicenr].channel = channel;
+    
+    gwTimer++;
+}
+
+
+void __stdcall MidiMessage(uint32_t dwData);
 /*
 void __stdcall MidiMessage(uint32_t dwData) 
 {
@@ -552,3 +615,57 @@ void __stdcall MidiMessage(uint32_t dwData)
 }
 */
 
+
+
+/*void synthInitNativeESFM() {
+    pWriteCB(0x00, 0x00); pDelayCB();
+    pWriteCB(0x02, 0x05); pDelayCB();
+    pWriteCB(0x01, 0x80); pDelayCB();
+}*/
+
+
+
+void esfm_init(uint8_t* pBank, FunWriteCB pfWr, FunDelayCB pfDly) {
+    esfm_setBank(pBank);
+    pWriteCB = pfWr;
+    pDelayCB = pfDly;
+    
+    esfm_startupDevice();
+    esfm_resetFM();
+}
+
+void esfm_setBank(uint8_t* pBank) {
+    gBankMem = pBank;
+}
+
+void esfm_resetFM() {
+    fmreset();
+}
+
+void esfm_startupDevice() {
+    //these are probably not right
+    pWriteCB(0x04, 72); pDelayCB();
+    pWriteCB(0x04, 72); pDelayCB();
+    pWriteCB(0x05, 0); pDelayCB();
+    pWriteCB(0x04, 127); pDelayCB();
+    pWriteCB(0x04, 127); pDelayCB();
+    pWriteCB(0x05, 0); pDelayCB();
+    pWriteCB(0x04, 54); pDelayCB();
+    pWriteCB(0x05, 119); pDelayCB(); //153
+    pWriteCB(0x04, 107); pDelayCB();
+    pWriteCB(0x05, 0); pDelayCB();
+    pWriteCB(0x07, 66); pDelayCB();
+    pWriteCB(0x02, 5); pDelayCB();
+    pWriteCB(0x01, 128); pDelayCB();
+}
+
+void esfm_shutdownDevice() {
+    pWriteCB(0x04, 72); pDelayCB();
+    pWriteCB(0x04, 72); pDelayCB();
+    pWriteCB(0x05, 16); pDelayCB();
+    pWriteCB(0x07, 98); pDelayCB();
+}
+
+void esfm_midiShort(uint32_t dwData) {
+    MidiMessage(dwData);
+}

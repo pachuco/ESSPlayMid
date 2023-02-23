@@ -32,12 +32,12 @@ Voice       ends
 extrn _MidiPitchBend@8:proc
 extrn _MidiCalcFAndB@8:proc
 extrn _NATV_CalcVolume@12:proc
-public _NATV_CalcNewVolume@4
+extrn _NATV_CalcNewVolume@4:proc
 public _NATV_CalcBend@12
 extrn _voice_off@4:proc
 extrn _note_off@8:proc
 public _note_on@12
-public _setup_voice@20
+extrn _setup_voice@20:proc
 public _find_voice@16
 public _steal_voice@4
 public _setup_operator@36
@@ -50,7 +50,7 @@ public _MidiMessage@4
 ; import
 extrn _fnum:word
 extrn _gbVelocityAtten:byte
-extrn _td_adjust__setup_operator:dword
+extrn _td_adjust_setup_operator:dword
 extrn _pmask_MidiPitchBend:byte
 
 extrn _gBankMem:dword
@@ -672,7 +672,7 @@ ZZZ_NATV_CalcVolume@12 endp
 
 
 ; void __stdcall NATV_CalcNewVolume(BYTE bChannel)
-_NATV_CalcNewVolume@4 proc near     ; CODE XREF: MidiMessage(x)+107p
+ZZZ_NATV_CalcNewVolume@4 proc near     ; CODE XREF: MidiMessage(x)+107p
 
 a3      = byte ptr -8
 a1      = word ptr -4
@@ -732,7 +732,7 @@ loc_6BC06E73:               ; CODE XREF: NATV_CalcNewVolume(x)+18j
         pop ebx
         leave
         retn    4
-_NATV_CalcNewVolume@4 endp
+ZZZ_NATV_CalcNewVolume@4 endp
 
 
 
@@ -1275,7 +1275,7 @@ _note_on@12 endp
 
 
 ; void __stdcall setup_voice(int voiceNr, int a3, int a6, int a1, signed int a2)
-_setup_voice@20 proc near       ; CODE XREF: note_on(x,x,x)+D4p
+ZZZ_setup_voice@20 proc near       ; CODE XREF: note_on(x,x,x)+D4p
                     ; note_on(x,x,x)+E8p ...
 
 var_8       = dword ptr -8
@@ -1387,7 +1387,7 @@ a2      = dword ptr  18h
         pop ebx
         leave
         retn    14h
-_setup_voice@20 endp
+ZZZ_setup_voice@20 endp
 
 
 
@@ -1858,7 +1858,7 @@ loc_6BC06757:               ; CODE XREF: setup_operator(x,x,x,x,x,x,x,x,x)+10Fj
         mov ecx, [ebp+var_4]
         mov ebx, [ebp+a2]
         sar edx, 2
-        mov ecx, _td_adjust__setup_operator[ecx*4]
+        mov ecx, _td_adjust_setup_operator[ecx*4]
         imul    ecx, edx
         sar ecx, 8
         cmp ebx, 1
