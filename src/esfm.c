@@ -318,6 +318,8 @@ uint8_t __stdcall NATV_CalcVolume(uint8_t reg1, uint8_t rel_velocity, uint8_t ch
     return vol | (reg1 & 0xC0);      // KSL
 }
 
+void __stdcall NATV_CalcNewVolume(uint8_t bChannel);
+/*
 void __stdcall NATV_CalcNewVolume(uint8_t bChannel)
 {
     uint32_t i, j, offset;
@@ -335,7 +337,7 @@ void __stdcall NATV_CalcNewVolume(uint8_t bChannel)
             }
         }
     }   
-}
+}*/
 
 //todo: shove it in after ASM decoupling
     /*static*/ uint8_t pmask_MidiPitchBend[] = {

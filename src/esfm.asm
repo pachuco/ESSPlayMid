@@ -32,7 +32,7 @@ Voice       ends
 extrn _MidiPitchBend@8:proc
 extrn _MidiCalcFAndB@8:proc
 extrn _NATV_CalcVolume@12:proc
-extrn _NATV_CalcNewVolume@4:proc
+public _NATV_CalcNewVolume@4
 public _NATV_CalcBend@12
 extrn _voice_off@4:proc
 extrn _note_off@8:proc
@@ -672,7 +672,7 @@ ZZZ_NATV_CalcVolume@12 endp
 
 
 ; void __stdcall NATV_CalcNewVolume(BYTE bChannel)
-ZZZ_NATV_CalcNewVolume@4 proc near     ; CODE XREF: MidiMessage(x)+107p
+_NATV_CalcNewVolume@4 proc near     ; CODE XREF: MidiMessage(x)+107p
 
 a3      = byte ptr -8
 a1      = word ptr -4
@@ -732,7 +732,7 @@ loc_6BC06E73:               ; CODE XREF: NATV_CalcNewVolume(x)+18j
         pop ebx
         leave
         retn    4
-ZZZ_NATV_CalcNewVolume@4 endp
+_NATV_CalcNewVolume@4 endp
 
 
 
