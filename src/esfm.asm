@@ -31,7 +31,7 @@ Voice       ends
 ; export
 public _MidiPitchBend@8
 extrn _MidiCalcFAndB@8:proc
-public _NATV_CalcVolume@12
+extrn _NATV_CalcVolume@12:proc
 public _NATV_CalcNewVolume@4
 public _NATV_CalcBend@12
 extrn _voice_off@4:proc
@@ -543,7 +543,7 @@ ZZZ_MidiCalcFAndB@8 endp
 
 
 ; BYTE __stdcall NATV_CalcVolume(BYTE a1, BYTE a2, BYTE a3)
-_NATV_CalcVolume@12 proc near       ; CODE XREF: setup_operator(x,x,x,x,x,x,x,x,x)+137p
+ZZZ_NATV_CalcVolume@12 proc near       ; CODE XREF: setup_operator(x,x,x,x,x,x,x,x,x)+137p
                     ; NATV_CalcNewVolume(x)+43p
 
 a1      = byte ptr  8
@@ -665,7 +665,7 @@ loc_6BC06E0B:               ; CODE XREF: NATV_CalcVolume(x,x,x)+B9j
 loc_6BC06E14:               ; CODE XREF: NATV_CalcVolume(x,x,x)+13j
         pop ebp
         retn    0Ch
-_NATV_CalcVolume@12 endp
+ZZZ_NATV_CalcVolume@12 endp
 
 
 

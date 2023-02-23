@@ -25,10 +25,7 @@ typedef struct {
 
 
 void __stdcall hold_controller(uint8_t channel, uint8_t bVelocity);
-void __stdcall voice_on(int voiceNr);
-void __stdcall voice_off(int voiceNr);
 void __stdcall fmreset();
-uint8_t __stdcall NATV_CalcVolume(uint8_t reg1, uint8_t rel_velocity, uint8_t channel);
 void __stdcall NATV_CalcNewVolume(uint8_t bChannel);
 void __stdcall MidiPitchBend(uint8_t bChannel, uint16_t iBend);
 void __stdcall find_voice(bool patch1617_allowed_voice1, bool patch1617_allowed_voice2, uint8_t bChannel, uint8_t bNote);
@@ -485,7 +482,41 @@ void __stdcall note_off(uint8_t bChannel, uint8_t bNote) {
     }
 }
 
+uint8_t __stdcall NATV_CalcVolume(uint8_t reg1, uint8_t rel_velocity, uint8_t channel) {
+    uint8_t vol;
 
+    if ( !gbChanVolume[channel] ) return 63;
+
+    switch ( rel_velocity ) {
+        case 0:
+            vol = 0;
+            break;
+        case 1:
+            vol = ((127 - gbChanExpr[channel]) >> 4 ) + ((127 - gbChanVolume[channel]) >> 4);
+            break;
+        case 2:
+            vol = ((127 - gbChanExpr[channel]) >> 3) + ((127 - gbChanVolume[channel]) >> 3);
+            break;
+        case 3:
+            vol = gbChanVolume[channel];
+            
+            if ( vol < 64 ) {
+                vol = ((63 - vol) >> 1) + 16;
+            } else {
+                vol = (127 - vol) >> 2;
+            }
+            
+            if ( gbChanExpr[channel] < 64 ) {
+                vol += ((63 - gbChanExpr[channel]) >> 1) + 16;
+            } else {
+                vol += ((127 - gbChanExpr[channel]) >> 2);
+            }
+            break;
+    }
+    vol += (reg1 & 0x3F);          // ATTENUATION
+    if ( vol > 63 ) vol = 63;
+    return vol | (reg1 & 0xC0);      // KSL
+}
 
 
 
