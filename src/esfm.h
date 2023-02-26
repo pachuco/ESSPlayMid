@@ -4,8 +4,10 @@
 typedef USHORT uint16_t;
 typedef BYTE uint8_t;
 typedef DWORD uint32_t;
+typedef BOOL bool;
 #else
 #include <stdint.h>
+#include <stdbool.h>
 #endif
 
 
