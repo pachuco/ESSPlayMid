@@ -45,7 +45,7 @@ extrn _voice_on@4:proc
 public _hold_controller@8
 public _fmreset@0
 public _MidiAllNotesOff@0
-public _MidiMessage@4
+extrn _MidiMessage@4:proc
 
 ; import
 extrn _fnum:word
@@ -100,7 +100,7 @@ extrn _fmwrite21@8:proc
 
 
 ; void __stdcall MidiMessage(DWORD dwData)
-_MidiMessage@4  proc near       ; CODE XREF: modSynthMessage(x,x,x,x,x)+111p
+ZZZ_MidiMessage@4  proc near       ; CODE XREF: modSynthMessage(x,x,x,x,x)+111p
                     ; modSynthMessage(x,x,x,x,x)+1A3p ...
 
 a3      = byte ptr -8
@@ -393,7 +393,7 @@ loc_6BC07126:               ; CODE XREF: MidiMessage(x)+4Fj
         pop ebx
         leave
         retn    4
-_MidiMessage@4  endp
+ZZZ_MidiMessage@4  endp
 
 
 

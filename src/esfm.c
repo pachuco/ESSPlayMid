@@ -210,6 +210,7 @@ void __stdcall voice_off(int voiceNr)
 
 //void hold_controller(BYTE channel, BYTE bVelocity)
 
+void __stdcall note_on(uint8_t channel, uint8_t bNote, uint8_t bVelocity);
 /*
 void __stdcall note_on(uint8_t channel, uint8_t bNote, uint8_t bVelocity)
 {
@@ -484,12 +485,10 @@ void __stdcall setup_voice(int voicenr, int offset, int channel, int bNote, int 
 }
 
 
-void __stdcall MidiMessage(uint32_t dwData);
-/*
 void __stdcall MidiMessage(uint32_t dwData) 
 {
     uint8_t    bMsgType, bChannel, bVelocity, bNote;
-    int     i;
+    unsigned int     i;
 
     // D1("\nMidiMessage");
     bMsgType =    (uint8_t)((dwData & 0x000000F0));
@@ -615,7 +614,6 @@ void __stdcall MidiMessage(uint32_t dwData)
             break;
     }
 }
-*/
 
 
 
