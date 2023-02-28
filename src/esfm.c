@@ -502,15 +502,15 @@ void __stdcall MidiMessage(uint32_t dwData)
         case 0x90:      // turn key on, or key off if volume == 0
             if (bVelocity)
             {
-                note_on((uint8_t)dwData, bNote, bVelocity); 
+                note_on(bChannel, bNote, bVelocity); 
             }
             else 
             {
-                note_off((uint8_t)dwData, bNote);
+                note_off(bChannel, bNote);
             }
             break;
         case 0x80:      // turn key off
-            note_off((uint8_t)dwData, bNote);
+            note_off(bChannel, bNote);
             break;
         case 0xb0:      // change control
             switch (bNote)
@@ -522,7 +522,7 @@ void __stdcall MidiMessage(uint32_t dwData)
                 case 7:
                     gbChanAtten[bChannel] = gbVelocityAtten[bVelocity >> 1];
                     gbChanVolume[bChannel] = bVelocity;
-                    NATV_CalcNewVolume((uint8_t)dwData);
+                    NATV_CalcNewVolume(bChannel);
                     break;
                 case 8:
                 case 10:
@@ -540,7 +540,7 @@ void __stdcall MidiMessage(uint32_t dwData)
                     break;
                 case 11:
                     gbChanExpr[bChannel] = bVelocity;
-                    NATV_CalcNewVolume((uint8_t)dwData);
+                    NATV_CalcNewVolume(bChannel);
                     break;
                 case 64:
                     hold_controller(bChannel, bVelocity);
@@ -611,7 +611,7 @@ void __stdcall MidiMessage(uint32_t dwData)
             program_table[bChannel] = bNote;
             break;
         case 0xe0:      // pitch bend
-            MidiPitchBend((uint8_t)dwData, bNote | (bVelocity << 7));
+            MidiPitchBend(bChannel, bNote | (bVelocity << 7));
             break;
     }
 }
