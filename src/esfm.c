@@ -26,8 +26,6 @@ typedef struct {
 
 void __stdcall hold_controller(uint8_t channel, uint8_t bVelocity);
 void __stdcall fmreset();
-void __stdcall find_voice(bool patch1617_allowed_voice1, bool patch1617_allowed_voice2, uint8_t bChannel, uint8_t bNote);
-int  __stdcall steal_voice(int patch1617_allowed);
 
 
 // Only used if ASM source
@@ -368,7 +366,84 @@ void __stdcall MidiPitchBend(uint8_t bChannel, uint16_t iBend) {
     }
 }
 
-//void find_voice(BOOL patch1617_allowed_voice1, BOOL patch1617_allowed_voice2, BYTE bChannel, BYTE bNote)
+void __stdcall find_voice(bool patch1617_allowed_voice1, bool patch1617_allowed_voice2, uint8_t bChannel, uint8_t bNote);
+/*
+void __stdcall find_voice(bool patch1617_allowed_voice1, bool patch1617_allowed_voice2, uint8_t bChannel, uint8_t bNote)
+{
+    int i;
+    uint16_t td, timediff1=0, timediff2=0;
+    
+    // Patch 0-15
+    for (i=0; i<16; i++)
+    {
+        Voice *voice = &voice_table[i];
+        
+        if (voice->flags1 & 1)
+        {
+            if (voice->channel == bChannel && voice->bNote == bNote)
+                voice_off(i);
+        }
+        td = gwTimer - voice->timer;
+        if (td < timediff1)
+        {
+            if (td >= timediff2)
+            {
+                timediff2 = td;
+                voice2 = i;
+            }
+        }
+        else
+        {
+            timediff2 = timediff1;
+            voice2 = voice1;
+            timediff1 = td;
+            voice1 = i;
+        }
+    }
+    
+    // Patch 16
+    if (voice_table[16].flags1 & 1)
+    {
+        if (voice_table[16].channel == bChannel && voice_table[16].bNote == bNote)
+            voice_off(16);
+    }
+    td = gwTimer - voice_table[16].timer;
+    if (patch1617_allowed_voice1 || td < timediff1)
+    {
+        if ( !patch1617_allowed_voice2 && td >= timediff2 )
+        {
+            timediff2 = gwTimer - voice_table[16].timer;
+            voice2 = 16;
+        }
+    }
+    else
+    {
+        timediff2 = timediff1;
+        voice2 = voice1;
+        timediff1 = td;
+        voice1 = 16;
+    }
+
+    // Patch 17
+    if (voice_table[17].flags1 & 1)
+    {
+        if (voice_table[17].channel == bChannel && voice_table[17].bNote == bNote)
+            voice_off(17);
+    }
+    td = gwTimer - voice_table[17].timer;
+    if (patch1617_allowed_voice1 || td < timediff1)
+    {
+        if ( !patch1617_allowed_voice2 && td >= timediff2 )
+            voice2 = 17;
+    }
+    else
+    {
+        if (voice1 != 16 || !patch1617_allowed_voice2)
+            voice2 = voice1;
+        voice1 = 17;
+    }
+    
+}*/
 
 int __stdcall steal_voice(int patch1617_allowed) {
     uint32_t i, last_voice, max_voices = (patch1617_allowed?18:16);
