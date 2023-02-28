@@ -39,7 +39,7 @@ extrn _note_off@8:proc
 public _note_on@12
 extrn _setup_voice@20:proc
 public _find_voice@16
-extrn _steal_voice@4:proc
+public _steal_voice@4
 public _setup_operator@36
 extrn _voice_on@4:proc
 public _hold_controller@8
@@ -1564,7 +1564,7 @@ _find_voice@16  endp
 
 
 ; int __stdcall steal_voice(int a1)
-ZZZ_steal_voice@4  proc near       ; CODE XREF: note_on(x,x,x)+9Bp
+_steal_voice@4  proc near       ; CODE XREF: note_on(x,x,x)+9Bp
                     ; note_on(x,x,x)+BAp ...
 
 var_10      = dword ptr -10h
@@ -1653,7 +1653,7 @@ loc_6BC0615E:               ; CODE XREF: steal_voice(x)+1Fj
         pop edi
         leave
         retn    4
-ZZZ_steal_voice@4  endp
+_steal_voice@4  endp
 
 
 

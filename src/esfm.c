@@ -445,6 +445,8 @@ void __stdcall find_voice(bool patch1617_allowed_voice1, bool patch1617_allowed_
     
 }*/
 
+int __stdcall steal_voice(int patch1617_allowed);
+/*
 int __stdcall steal_voice(int patch1617_allowed) {
     uint32_t i, last_voice, max_voices = (patch1617_allowed?18:16);
     uint8_t chn, chncmp = 0, bit3 = 0;
@@ -470,7 +472,7 @@ int __stdcall steal_voice(int patch1617_allowed) {
     voice_off(last_voice);
     return last_voice;
 }
-
+*/
 
     //TODO: shove it in
     /*static*/ uint32_t td_adjust_setup_operator[] = {
