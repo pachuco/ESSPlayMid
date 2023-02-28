@@ -369,7 +369,32 @@ void __stdcall MidiPitchBend(uint8_t bChannel, uint16_t iBend) {
 }
 
 //void find_voice(BOOL patch1617_allowed_voice1, BOOL patch1617_allowed_voice2, BYTE bChannel, BYTE bNote)
-//int steal_voice(int patch1617_allowed)
+
+int __stdcall steal_voice(int patch1617_allowed) {
+    uint32_t i, last_voice, max_voices = (patch1617_allowed?18:16);
+    uint8_t chn, chncmp = 0, bit3 = 0;
+	uint16_t timediff = 0;
+    
+    for (i=0; i<max_voices; i++)
+    {
+        chn = voice_table[i].channel == 9?1:voice_table[i].channel+2;
+        if (bit3 == (voice_table[i].flags1 & 8))
+        {
+            if (chn <= chncmp)
+            {
+                if ( chn != chncmp || (gwTimer - voice_table[i].timer) <= timediff )
+                    continue;
+            }
+        }
+        else if (!bit3) bit3 = 8;
+        
+        chncmp = chn;
+        timediff = gwTimer - voice_table[i].timer;
+        last_voice = i;
+    }
+    voice_off(last_voice);
+    return last_voice;
+}
 
 
     //TODO: shove it in
