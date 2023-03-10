@@ -1,10 +1,9 @@
 #include <windows.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <assert.h>
 #include <conio.h>
 #include "util.h"
-#include "buttio.h"
+#include "iodriver.h"
 #include "esfm.h"
 
 typedef struct {
@@ -20,7 +19,6 @@ typedef struct {
 } InstrBank;
 
 static USHORT fmBase = 0;
-static IOHandler ioHand = {0};
 static int curBank = 0;
 
 #define DYNFILE_POLL_TIME 500
@@ -35,7 +33,7 @@ static InstrBank bankArr[] = {
         {"bnk_NT4.bin", "NT4 driver.", NULL},
         
         //{"?malloc", "Malloc unsanitized memory special dish.", NULL},  //will crash, instrument data not sanitized
-        {"?dynfile", "Shared dynload.bin file that you can hex edit.", NULL}
+        //{"?dynfile", "Shared dynload.bin file that you can hex edit.", NULL}
 };
 
 
@@ -126,10 +124,10 @@ BOOL updateDynFile() {
 }
 
 void fmWriteCallback(BYTE baseOffset, BYTE data) {
-    buttio_wu8(&ioHand, fmBase+baseOffset, data);
+    WRITE_PORT_UCHAR((fmBase+baseOffset), data);
 }
 
-void fmDelayCallback() {
+void fmDelayCallback(void) {
     QPCuWait(10);
 }
 
@@ -143,10 +141,10 @@ int main(int argc, char* argv[]) {
         printUsage();
         return 0;
     } else if (!strcmp(argv[1], "-l")) {
-        UINT numMidiInDevs = midiInGetNumDevs();
+        UINT i, numMidiInDevs = midiInGetNumDevs();
         
         printf("Midi-in devices(%i total):\n", numMidiInDevs);
-        for (UINT i=0; i<numMidiInDevs; i++) {
+        for (i=0; i<numMidiInDevs; i++) {
             MIDIINCAPSA midiCaps = {0};
             
             if (midiInGetDevCapsA(i, &midiCaps, sizeof(MIDIINCAPSA)) == MMSYSERR_NOERROR) {
@@ -159,7 +157,8 @@ int main(int argc, char* argv[]) {
     } else {
         UINT devIndex = strtol(argv[1], NULL, 10);
         MidiInDevice midev = {0};
-        UINT errMidi = 0;
+        UINT i, errMidi = 0;
+		BOOL isRunning;
         
         if (!devIndex) {
             printUsage();
@@ -175,7 +174,7 @@ int main(int argc, char* argv[]) {
         printf("FM port %X\n", fmBase);
         
         assert(COUNTOF(bankArr) >= 1);
-        for (unsigned int i=0; i < COUNTOF(bankArr); i++) {
+        for (i=0; i < COUNTOF(bankArr); i++) {
             int size;
             
             if(bankArr[i].fileName[0] == '?') {
@@ -200,26 +199,24 @@ int main(int argc, char* argv[]) {
         }
         curBank = 0;
             
-        if (!buttio_init(&ioHand, NULL, BUTTIO_MET_IOPM)) {
-            printf("Buttio init error!\n");
+        if (!IODriver_Init(fmBase, fmBase+0xF)) {
+            printf("IO driver init error!\n");
             return 1;
         }
-        iopm_fillRange(&ioHand.iopm, fmBase, fmBase+0xF, TRUE);
-        buttio_flushIOPMChanges(&ioHand);
         
         errMidi |= midiInGetDevCapsA(midev.index, &midev.caps, sizeof(MIDIINCAPSA));
         errMidi |= midiInOpen(&midev.hmi, midev.index, (DWORD_PTR)&midiCB, (DWORD_PTR)&midev, CALLBACK_FUNCTION);
         errMidi |= midiInStart(midev.hmi);
         if (errMidi) {
             printf("Midi-in init error!\n");
-            buttio_shutdown(&ioHand);
+            IODriver_Exit();
             return 1;
         };
         
         esfm_init(bankArr[0].pData, &fmWriteCallback, &fmDelayCallback);
         printFmBankDescription(&bankArr[0]);
         
-        BOOL isRunning = TRUE;
+        isRunning = TRUE;
         while(isRunning) {
             if (kbhit()) {
                 unsigned char c = _getch();
@@ -240,6 +237,7 @@ int main(int argc, char* argv[]) {
                         isRunning = FALSE;
                         }break;
                     default:
+                    break;
                 }
             }
             
@@ -251,7 +249,7 @@ int main(int argc, char* argv[]) {
                     
                     dynFile_lastCheckTime = curTick;
                     if (GetFileTime(dynFile_handle, NULL, NULL, &checkedTime)) {
-                        ULARGE_INTEGER uliCheckedTime = {.LowPart = checkedTime.dwLowDateTime, .HighPart = checkedTime.dwHighDateTime};
+                        ULARGE_INTEGER uliCheckedTime = {checkedTime.dwLowDateTime, checkedTime.dwHighDateTime};
                         
                         if (uliCheckedTime.QuadPart != dynFile_lastModifyTime.QuadPart) {
                             dynFile_lastModifyTime.QuadPart = uliCheckedTime.QuadPart;
@@ -270,7 +268,7 @@ int main(int argc, char* argv[]) {
         midiInClose(midev.hmi);
         
         //SleepEx(2000, 1);
-        buttio_shutdown(&ioHand);
+        IODriver_Exit();
     }
     
     return 0;

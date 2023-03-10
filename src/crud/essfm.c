@@ -1,137 +1,171 @@
 #include <windows.h>
 #include <assert.h>
 #include "essfm.h"
-#include "buttio.h"
 
-//not very accurate
-void QPCuWait(DWORD uSecTime) { //KeStallExecutionProcessor
-    static LONGLONG freq=0;
-    LONGLONG start=0, cur=0, wait=0;
-    
-    if (freq == 0) QueryPerformanceFrequency((PLARGE_INTEGER)&freq);
-    if (freq != 0) {
-        wait = ((LONGLONG)uSecTime * freq)/(LONGLONG)1000000;
-        QueryPerformanceCounter((PLARGE_INTEGER)&start);
-        while (cur < (start + wait)) {
-            __asm__("pause");
-            QueryPerformanceCounter((PLARGE_INTEGER)&cur);
-        }
-    } else {
-        //TODO: alternate timing mechanism
-    }
-}
+#ifdef _MSC_VER
+#  ifndef STDCALL
+#    define STDCALL __stdcall 
+#  endif
+#  define static_assert(x,y)
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 //AUDDRIVE.SYS
 
-#define READ_PORT_UCHAR(CONF, PORT,  PDATA) buttio_ru8(&(CONF)->ioHand, (CONF)->port + (PORT), PDATA)
-#define WRITE_PORT_UCHAR(CONF, PORT, DATA)  buttio_wu8(&(CONF)->ioHand, (CONF)->port + (PORT), DATA)
+/*
+#include "iodriver.h"
 
-char FMRegs[608] = {0}; //!WARN FMREGLENGTH is 595
+// It's hardcoded base address in AUDDRIVE.SYS, so we do the same
+// on reconstructed source
+#define ESS_FMBASE	0x388
+#define FMREGLENGTH 595
+
+//
+// Devices - these values are also used as array indices
+//
+
+typedef enum {
+   WaveInDevice = 0,
+   WaveOutDevice,
+   MidiOutDevice,
+   MidiInDevice,
+   LineInDevice,
+   CDInternal,
+   MixerDevice,
+   NumberOfDevices
+} SOUND_DEVICES;
+
+BYTE FMRegs[608] = {0}; //!WARN FMREGLENGTH is 595
+
 SHORT Address_SynthMidiData[2] = {0};
 
 
-void synthInitNativeESFM(FmConfig* fmConf) {
-    WRITE_PORT_UCHAR(fmConf, 0, 0x00);
-    QPCuWait(25);
-    WRITE_PORT_UCHAR(fmConf, 2, 0x05);
-    QPCuWait(25);
-    WRITE_PORT_UCHAR(fmConf, 1, 0x80);
-    QPCuWait(25);
+void SynthInitNativeESFM(void) 
+{
+    WRITE_PORT_UCHAR(ESS_FMBASE + 0, 0x00);
+    KeStallExecutionProcessor(25);
+    WRITE_PORT_UCHAR(ESS_FMBASE + 2, 0x05);
+    KeStallExecutionProcessor(25);
+    WRITE_PORT_UCHAR(ESS_FMBASE + 1, 0x80);
+    KeStallExecutionProcessor(25);
 }
 
-void synthSaveESFM(FmConfig* fmConf) {
-    for (UINT i=0; i < FMREGLENGTH; i++) {
-        WRITE_PORT_UCHAR(fmConf, 2, i&0xFF);
-        QPCuWait(3);
-        WRITE_PORT_UCHAR(fmConf, 3, i>>8);
-        QPCuWait(3);
-        READ_PORT_UCHAR(fmConf, 1, &(fmConf->registers[i]));
-        QPCuWait(3);
-        WRITE_PORT_UCHAR(fmConf, 1, 0x00);
-        QPCuWait(3);
+void SynthSaveESFM(PGLOBAL_DEVICE_INFO pGDI)
+{
+	UINT i;
+
+    for (i=0; i < FMREGLENGTH; i++) 
+	{
+        WRITE_PORT_UCHAR(ESS_FMBASE + 2, i&0xFF);
+        KeStallExecutionProcessor(3);
+        WRITE_PORT_UCHAR(ESS_FMBASE + 3, i>>8);
+        KeStallExecutionProcessor(3);
+        FMRegs[i] = READ_PORT_UCHAR(ESS_FMBASE + 1);
+        KeStallExecutionProcessor(3);
+        WRITE_PORT_UCHAR(ESS_FMBASE + 1, 0x00);
+        KeStallExecutionProcessor(3);
     }
 }
 
-void synthRestoreESFM(FmConfig* fmConf) {
-    for (UINT i=0; i < FMREGLENGTH; i++) {
-        WRITE_PORT_UCHAR(fmConf, 2, i&0xFF);
-        QPCuWait(3);
-        WRITE_PORT_UCHAR(fmConf, 3, i>>8);
-        QPCuWait(3);
-        WRITE_PORT_UCHAR(fmConf, 1, fmConf->registers[i]);
-        QPCuWait(3);
+void SynthRestoreESFM(PGLOBAL_DEVICE_INFO pGDI) 
+{
+	UINT i;
+
+    for (i=0; i < FMREGLENGTH; i++) 
+	{
+        WRITE_PORT_UCHAR(ESS_FMBASE + 2, i&0xFF);
+        KeStallExecutionProcessor(3);
+        WRITE_PORT_UCHAR(ESS_FMBASE + 3, i>>8);
+        KeStallExecutionProcessor(3);
+        WRITE_PORT_UCHAR(ESS_FMBASE + 1, FMRegs[i]);
+        KeStallExecutionProcessor(3);
     }
 }
 
-void synthMidiSendFM(FmConfig* fmConf, USHORT reg, UCHAR data) {
-    USHORT offHigh = (reg < 0x100) ? 0 : 2;
+void SynthMidiSendFM(PUCHAR PortBase, ULONG Address, UCHAR data) 
+{
+    USHORT offHigh = (Address < 0x100) ? 0 : 2;
     
-    WRITE_PORT_UCHAR(fmConf, 0 + offHigh, reg&0xFF);
-    QPCuWait(23);
-    WRITE_PORT_UCHAR(fmConf, 1 + offHigh, data);
-    QPCuWait(23);
+    WRITE_PORT_UCHAR(PortBase + offHigh, Address&0xFF);
+    KeStallExecutionProcessor(23);
+    WRITE_PORT_UCHAR(PortBase + offHigh + 1, data);
+    KeStallExecutionProcessor(23);
 }
 
-/*BOOL synthPresent(FmConfig* fmConf, PUCHAR inbase, BOOL *pIsFired) {
-    //!WARN check inbase usage
+BOOL SynthPresent(PUCHAR outPort, PUCHAR inbase, BOOLEAN *pIsFired) 
+{
     UCHAR t1, t2;
 
     if (pIsFired) *pIsFired = FALSE;
 
     // check if the chip is present
-    synthMidiSendFM(fmConf, 4, 0x60);
-    synthMidiSendFM(fmConf, 4, 0x80);
-    READ_PORT_UCHAR(fmConf, inbase, &t1);
-    synthMidiSendFM(fmConf, 2, 0xFF);
-    synthMidiSendFM(fmConf, 4, 0x21);
-    QPCuWait(200);
+    SynthMidiSendFM(outPort, 4, 0x60);
+    SynthMidiSendFM(outPort, 4, 0x80);
+    t1 = READ_PORT_UCHAR(outPort + inbase);
+    SynthMidiSendFM(outPort, 2, 0xFF);
+    SynthMidiSendFM(outPort, 4, 0x21);
+    KeStallExecutionProcessor(200);
 
     if (pIsFired && *pIsFired) return TRUE;
 
-    READ_PORT_UCHAR(fmConf, inbase, &t);
-    synthMidiSendFM(fmConf, 4, 0x60);
-    synthMidiSendFM(fmConf, 4, 0x80);
+    t2 = READ_PORT_UCHAR(inbase);
+    SynthMidiSendFM(outPort, 4, 0x60);
+    SynthMidiSendFM(outPort, 4, 0x80);
 
-    if (!((t1 & 0xE0) == 0) || !((t2 & 0xE0) == 0xC0)) return FALSE;
+    if (t1 & 0xE0 || (t2 & 0xE0) != 0xC0) return FALSE;
 
     return TRUE;
-}*/
+}
 
-/*BOOL SynthMidiIsOpl3(FmConfig* fmConf, BOOLEAN *isFired) {
-  BOOL isOpl3 = 0;
+BOOLEAN SynthMidiIsOpl3(PSYNTH_HARDWARE pHw, BOOLEAN *isFired)
+{
+	BOOLEAN isOpl3;
+	PUCHAR Port = pHw->SynthBase:
 
-  SynthMidiSendFM(pHw->SynthBase, 0x105, 0);
-  QPCuWait(20);
-  if (SynthPresent(base + 2, base, isFired) ) {
-    SynthMidiSendFM(base, 0x105, 1);
-    QPCuWait(20);
-    if (!SynthPresent(base + 2, base, isFired) ) isOpl3 = 1;
+	SynthMidiSendFM(pHw->SynthBase, 0x105, 0);
+	KeStallExecutionProcessor(20);
+	if (SynthPresent(Port + 2, Port, isFired) ) 
+	{
+		SynthMidiSendFM(Port, 0x105, 1);
+		KeStallExecutionProcessor(20);
+		if (!SynthPresent(Port + 2, Port, isFired) ) 
+			isOpl3 = TRUE;
+	}
   }
-  SynthMidiSendFM(base, 0x105, 0);
-  QPCuWait(20);
+  SynthMidiSendFM(Port, 0x105, 0);
+  KeStallExecutionProcessor(20);
   return isOpl3;
-}*/
+}
 
-void synthMidiQuiet(FmConfig* fmConf) {
-    synthMidiSendFM(fmConf, 0x105, 0x01);
-    synthMidiSendFM(fmConf, 0x004, 0x60);
-    synthMidiSendFM(fmConf, 0x104, 0x3F);
-    synthMidiSendFM(fmConf, 0x008, 0x00);
-    synthMidiSendFM(fmConf, 0x0BD, 0xC0);
+void SynthMidiQuiet(UCHAR deviceIndex, PSYNTH_HARDWARE pHw)
+{
+	UINT i;
+
+	if (deviceIndex != MixerDevice) return;
+
+    SynthMidiSendFM(pHw->SynthBase, 0x105, 0x01);
+    SynthMidiSendFM(pHw->SynthBase, 0x004, 0x60);
+    SynthMidiSendFM(pHw->SynthBase, 0x104, 0x3F);
+    SynthMidiSendFM(pHw->SynthBase, 0x008, 0x00);
+    SynthMidiSendFM(pHw->SynthBase, 0x0BD, 0xC0);
     
-    for (UINT i=0; i < 21; i++) {
-        synthMidiSendFM(fmConf, 0x040 + i, 0x3F);
-        synthMidiSendFM(fmConf, 0x140 + i, 0x3F);
+    for (i=0; i < 21; i++) 
+	{
+        SynthMidiSendFM(fmConf, 0x040 + i, 0x3F);
+        SynthMidiSendFM(fmConf, 0x140 + i, 0x3F);
     }
     
-    for (UINT i=0; i < 8; i++) {
-        synthMidiSendFM(fmConf, 0x0B0 + i, 0);
-        synthMidiSendFM(fmConf, 0x1B0 + i, 0x00);
+    for (i=0; i < 8; i++) 
+	{
+        SynthMidiSendFM(pHw->SynthBase, 0x0B0 + i, 0);
+        SynthMidiSendFM(pHw->SynthBase, 0x1B0 + i, 0x00);
     }
 }
 
-void SynthMidiData(FmConfig* fmConf, USHORT address, BYTE data) {
+/*
+void SynthMidiData(FmConfig* fmConf, USHORT address, BYTE data) 
+{
     //!WARN driver MajorFunction
 
     //assert(v8 & 3);
@@ -145,9 +179,10 @@ void SynthMidiData(FmConfig* fmConf, USHORT address, BYTE data) {
     } else {
         FMRegs[Address_SynthMidiData[0]] = data;
     }
-    //QPCuWait(23); //OPL2
-    QPCuWait(10); //OPL3, etc.
+    //KeStallExecutionProcessor(23); //OPL2
+    KeStallExecutionProcessor(10); //OPL3, etc.
 }
+*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 //AUDDRIVE.DLL
@@ -156,13 +191,13 @@ typedef struct {
     BYTE    field_1;
     USHORT  timer;
     BYTE    channel;
-    BYTE    field_5;
-    BYTE    flags2;
+    BYTE    bNote;
+    BYTE    rel_vel;
     BYTE    field_7;
-    USHORT  field_8[4];
-    BYTE    field_10;
-    BYTE    field_11[4];
-    BYTE    field_15[4];
+    USHORT  detune[4];
+    BYTE    patch_flag;
+    BYTE    reg5[4];
+    BYTE    reg1[4];
     BYTE    field_19;
 } Voice;
 static_assert(sizeof(Voice) == 26, "");
@@ -202,6 +237,7 @@ SHORT fnum[12] = {
     816, 864, 916, 970
 };
 
+extern PBYTE gBankMem;
 BYTE  pan_mask[16]          = {0};
 BYTE  gbVelLevel[16]        = {0};
 BYTE  gbChanAtten[16]       = {0};
@@ -211,35 +247,56 @@ BYTE  gbChanVolume[16]      = {0};
 BYTE  program_table[16]     = {0};
 BYTE  gbChanExpr[16]        = {0};
 BYTE  gbChanBendRange[16]   = {0};
+BYTE  note_offs[16]         = {0};
 //!HINT size: MidiPitchBend(), 26bytes * 18
 //!WARN might be bigger(20 voices; melodic + perc)
 Voice voice_table[18]       = {0};
 WORD  DeviceData[162]       = {0};
+USHORT gwTimer;
+DWORD voice1, voice2;
 
 UINT  MidiPosition = 0;
 
 
+void note_on(BYTE channel, BYTE bNote, BYTE bVelocity);
+void note_off(BYTE bChannel, BYTE bNote);
+void hold_controller(BYTE channel, BYTE bVelocity);
+void voice_on(int voiceNr);
+void voice_off(int voiceNr);
+void __stdcall fmreset();
+BYTE NATV_CalcVolume(BYTE reg1, BYTE rel_velocity, BYTE channel);
+void NATV_CalcNewVolume(BYTE bChannel);
+void MidiPitchBend(BYTE bChannel, USHORT iBend);
+void find_voice(BOOL patch1617_allowed_voice1, BOOL patch1617_allowed_voice2, BYTE bChannel, BYTE bNote);
+int steal_voice(int patch1617_allowed);
+void setup_operator(int offset, int bNote, int bVelocity, USHORT reg, int fixed_pitch, int rel_velocity, int channel, int operator, int voicenr);
+void setup_voice(int voicenr, int offset, int channel, int bNote, int bVelocity);
+void STDCALL MidiMessage(DWORD dwData);
 
 
 
-SHORT NATV_CalcBend(USHORT a1, USHORT iBend, USHORT a3) {
+
+SHORT NATV_CalcBend(USHORT detune, USHORT iBend, USHORT iBendRange)
+{
     //!WARN iBend is int16 in OPL midi driver sample
-    if ( iBend == 0x2000 ) {
-        return a1 & 0xFF;
-    } else {
+    if ( iBend == 0x2000 ) 
+        return detune & 0xFF;
+    else 
+	{
+        int v5;
         if ( iBend >= 0x3F80 ) iBend = 0x4000;
-        int v5 = (a3 * (iBend - 0x2000) >> 5) + 0x1800;
-        return (a1 * (USHORT)((NATV_table1[(v5>>2)&0x3F] * NATV_table2[v5>>8]) >> 10) + 512) >> 10;
+        v5 = (iBendRange * (iBend - 0x2000) >> 5) + 0x1800;
+        return (detune * (USHORT)((NATV_table1[(v5>>2)&0x3F] * NATV_table2[v5>>8]) >> 10) + 512) >> 10;
     }
 }
 
-UINT MidiCalcFAndB(UINT a1, BYTE a2) {
-    while (a1 >= 0x400) {
-        a1 >>= 1;
-        a2++;
+UINT MidiCalcFAndB(UINT bend, BYTE block) {
+    while (bend >= 1024) {
+        bend >>= 1;
+        block++;
     }
-    if ( a2 > 7 ) a2 = 7;
-    return a1 | (a2 << 10);
+    if ( block > 7 ) block = 7;
+    return bend  | (block << 10);
 }
 
 void MidiFlush() {
@@ -267,53 +324,148 @@ void fmwrite(USHORT a1, USHORT a2) {
     //return pos * 2;
 }
 
-void note_off(unsigned __int8 bChannel, char a2) {
-    for (UINT i=0; i<18; i++) {
-        Voice *voice = &voice_table[i];
-        
-        if ((voice->flags1 & 1) && voice->channel == bChannel && voice->field_5 == a2 ) {
-            if ( hold_table_S9326[bChannel] & 1 ) {
+void note_on(BYTE channel, BYTE bNote, BYTE bVelocity)
+{
+    int patch;
+    int offset;
+    BYTE flags_voice1;
+    int fixed_pitch;
+
+    if ( channel == 9 )
+        patch = bNote + 128;
+    else
+        patch = program_table[channel];
+    offset = gBankMem[2 * patch] + (gBankMem[2 * patch + 1] << 8);
+    if ( offset )
+    {
+        flags_voice1 = gBankMem[offset];
+        fixed_pitch = (flags_voice1 >> 1) & 3;
+        switch (fixed_pitch)
+        {
+        case 0:
+            find_voice(flags_voice1 & 1, 0, channel, bNote);
+            if ( voice1 == 255 ) voice1 = steal_voice(gBankMem[offset] & 1);
+            setup_voice(voice1, offset, channel, bNote, bVelocity);
+            voice_on(voice1);
+            break;
+        case 1:
+            find_voice(flags_voice1 & 1, gBankMem[offset + 36] & 1, channel, bNote);
+            if (voice1 == 255) voice1 = steal_voice(gBankMem[offset] & 1);
+            setup_voice(voice1, offset, channel, bNote, bVelocity);
+            if (voice2 != 255)
+            {
+                setup_voice(voice2, offset + 36, channel, bNote, bVelocity);
+                voice_table[voice2].flags1 |= 8u;
+                voice_on(voice2);
+            }
+            voice_on(voice1);
+            break;
+        case 2:
+            find_voice(flags_voice1 & 1, gBankMem[offset + 36] & 1, channel, bNote);
+            if ( voice1 == 255 )
+            voice1 = steal_voice(gBankMem[offset] & 1);
+            if ( voice2 == 255 )
+            voice2 = steal_voice(gBankMem[offset + 36] & 1);
+            setup_voice(voice1, offset, channel, bNote, bVelocity);
+            setup_voice(voice2, offset + 36, channel, bNote, bVelocity);
+            voice_on(voice1);
+            voice_on(voice2);
+            break;
+        }
+        gbVelLevel[channel] = bVelocity;
+        if (note_offs[channel] == 255) note_offs[channel]=0; else note_offs[channel]++;
+    }
+}
+
+void note_off(BYTE bChannel, BYTE bNote)
+{
+    int i;
+    
+    for (i=0; i<18; i++)
+    {
+		Voice *voice = &voice_table[i];
+        if ((voice->flags1 & 1) && voice->channel == bChannel && voice->bNote == bNote)
+        {
+            if ( hold_table[bChannel] & 1 ) 
+            {
                 voice->flags1 |= 4;
-            } else {
+            }
+            else
+            {
                 voice_off(i);
             }
         }
     }
 }
 
-void hold_controller(int channel, signed int a3) {
-    if ( a3 < 64 ) {
-        hold_table[channel] &= 0xFE;
+void hold_controller(BYTE channel, BYTE bVelocity)
+{
+    if ( bVelocity < 64 ) 
+    {
+        int i;
         
-        for (UINT i=0; i<18; i++) {
-            Voice* voice = &voice_table[i];
-            
-            if ( voice->flags1 & 4 ) {
-                if ( voice->channel == channel ) voice_off(i);
-            }
+        hold_table[channel] &= ~1;
+        
+        for (i = 0; i<sizeof(voice_table)/sizeof(voice_table[0]); i++)
+        {
+            if ((voice_table[i].flags1 & 4) && voice_table[i].channel == channel)
+                voice_off(i);
         }
     } else {
         hold_table[channel] |= 1;
     }
 }
 
-void voice_on(signed int voiceNr) {
-    if ( voiceNr >= 16 ) {
-        if ( voiceNr == 16 ) {
+void voice_on(int voiceNr)
+{
+    if ( voiceNr >= 16 )
+    {
+        if ( voiceNr == 16 )
+        {
             fmwrite(0x250, 1);
             fmwrite(0x251, 1);
-        } else {
+        }
+        else
+        {
             fmwrite(0x252, 1);
             fmwrite(0x253, 1);
         }
-    } else {
-        fmwrite(voiceNr + 0x240, 1);
+    }
+    else 
+    {
+        fmwrite((USHORT)voiceNr + 0x240, 1);
     }
 }
 
-void fmreset() {
+void voice_off(int voiceNr)
+{
+    if ( voiceNr >= 16 )
+    {
+        if ( voiceNr == 16 )
+        {
+          fmwrite(0x250, 0);
+          fmwrite(0x251, 0);
+        }
+        else
+        {
+          fmwrite(0x252, 0);
+          fmwrite(0x253, 0);
+        }
+    }
+    else
+    {
+        fmwrite((USHORT)voiceNr + 0x240, 0);
+    }
+    voice_table[voiceNr].flags1 = 2;
+    voice_table[voiceNr].timer = (USHORT)gwTimer;
+    gwTimer++;
+}
+
+
+
+void __stdcall fmreset() {
     //!WARN partial decompile
-    int v0; // eax@1
+	UINT i;
     
     //v0 = MidiPosition;
     //v0 *= 4;
@@ -324,7 +476,8 @@ void fmreset() {
     //*(__int16 *)((char *)&DeviceData[3] + v0) = 0x80;
     MidiPosition += 2;
     MidiFlush();
-    for (UINT i=0; i<16; i++) {
+    for (i=0; i<16; i++) 
+    {
         giBend[i]           = 0x2000;
         gbChanBendRange[i]  = 0x02;
         hold_table[i]       = 0x00;
@@ -334,73 +487,90 @@ void fmreset() {
         pan_mask[i]         = 0x30;
     }
     
-    for (UINT i=0; i < 18; i++) {
-        voice_table[i]->timer = 0;
-        voice_table[i]->flags1 = 0;
+    for (i=0; i < 18; i++) 
+    {
+        voice_table[i].timer = 0;
+        voice_table[i].flags1 = 0;
     }
     
-    //LOWORD(timer_S9322) = 0;
+    gwTimer = 0;
 }
 
-BYTE NATV_CalcVolume(BYTE a1, BYTE a2, BYTE a3){
-    BYTE vol; // eax@8
-    
-    if ( !gbChanVolume[a3] ) return 0x3F;
-    
-    assert(a2 < 4);
-    if (a2 == 1 || a2 == 2) {
-        switch (a2) {
-            case 1: vol = ((0x7F - gbChanVolume[a3]) >> 4) + ((0x7F - gbChanExpr[a3]) >> 4);
-                break;
-            case 2: vol = ((0x7F - gbChanVolume[a3]) >> 3) + ((0x7F - gbChanExpr[a3]) >> 3);
-                break;
-        }
-        
-        if ( gbChanExpr[a3] < 0x40 ) {
-            vol = ((0x3F - gbChanExpr[a3]) >> 1) + 16;
-        } else {
-            vol = ((0x7F - gbChanExpr[a3]) >> 2);
-        }
-        
-        if ( gbChanVolume[a3] >= 0x40 ) {
-            vol += ((0x7F - gbChanVolume[a3]) >> 2);
-        } else {
-            vol += ((0x3F - gbChanVolume[a3]) >> 1) + 16;
-        }
-    } else {
-        vol = a2 ? a1 : 0;
-    }
-    
-    vol += (a1 & 0x3F);
-    if ( vol > 0x3F ) vol = 0x3F;
-    return vol | a1 & 0xC0;
+BYTE NATV_CalcVolume(BYTE reg1, BYTE rel_velocity, BYTE channel)
+{
+  BYTE vol;
+
+  if ( !gbChanVolume[channel] ) return 63;
+
+  switch ( rel_velocity )
+  {
+    case 0:
+      vol = 0;
+	  break;
+    case 1:
+      vol = ((127 - gbChanExpr[channel]) >> 4 ) + ((127 - gbChanVolume[channel]) >> 4);
+      break;
+    case 2:
+      vol = ((127 - gbChanExpr[channel]) >> 3) + ((127 - gbChanVolume[channel]) >> 3);
+      break;
+    case 3:
+      vol = gbChanVolume[channel];
+      if ( vol < 64 )
+        vol = ((63 - vol) >> 1) + 16;
+      else
+        vol = (127 - vol) >> 2;
+      if ( gbChanExpr[channel] < 64 )
+      {
+         vol += ((63 - gbChanExpr[channel]) >> 1) + 16;
+      }
+      else
+      {
+         vol += ((127 - gbChanExpr[channel]) >> 2);
+      }
+      break;
+  }
+  vol += (reg1 & 0x3F);          // ATTENUATION
+  if ( vol > 63 ) vol = 63;
+  return vol | reg1 & 0xC0;      // KSL
 }
 
-void NATV_CalcNewVolume(BYTE bChannel) {
-    for (UINT i=1; i < 577; i += 32) {
-        Voice* voice = &voice_table[i];
-        
-        if ((voice->flags & 1) && (voice->channel == bChannel || bChannel == 0xFF)) {
-            for (UINT j=0; j < 4; j++) {
-                fmwrite(i, NATV_CalcVolume(voice->field_15[j], (voice->flags2 & 3), voice->channel));
-                i += 8;
+void NATV_CalcNewVolume(BYTE bChannel)
+{
+    UINT i, j, offset;
+
+    for (i=0, offset=1; i < sizeof(voice_table)/sizeof(voice_table[0]); i++) 
+    {
+        Voice *voice = &voice_table[i];
+        if ((voice->flags1 & 1) && (voice->channel == bChannel || bChannel == 0xFF)) 
+        {
+            for (j=0; j < sizeof(voice->channel); j++)
+            {
+                fmwrite((USHORT)offset, NATV_CalcVolume(voice->reg1[j], (voice->rel_vel & 3), voice->channel));
+                offset += 8;
             }
         }
-    }
+    }   
 }
 
-void MidiPitchBend(BYTE bChannel, int iBend) {
-    for (UINT i=0; i < 18; i++) {
-        Voice* voice = &voice_table[i];
-        
-        if (voice->channel == bChannel && voice->flags1 & 1) {
-            for (UINT j=0; j < 4; j++) {
-                if (pmask_MidiPitchBend & voice->field_10) {
+void MidiPitchBend(BYTE bChannel, USHORT iBend) 
+{
+    UINT i, j;
+    
+    giBend[bChannel] = iBend;
+    for (i=0; i < sizeof(voice_table)/sizeof(voice_table[0]); i++) 
+    {
+		Voice *voice = &voice_table[i];
+        if (voice->channel == bChannel && voice->flags1 & 1) 
+        {
+            for (j=0; j < sizeof(voice->reg5); j++)
+            {
+                if ((pmask_MidiPitchBend[j] & voice->patch_flag) == 0) 
+                {
                     SHORT bnd;
                     
-                    bnd = NATV_CalcBend(voice->field_8[j], iBend, gbChanBendRange_S9325[bChannel]);
-                    bnd = MidiCalcFAndB(bnd, (voice->field_11[j] >> 2) & 7);
-                    fmwrite(i*32 + j*8 + 5, (voice->field_11[j] & 0xE0) | (bnd>>8));
+                    bnd = NATV_CalcBend(voice->detune[j], iBend, gbChanBendRange[bChannel]);
+                    bnd = MidiCalcFAndB(bnd, (voice->reg5[j] >> 2) & 7);
+                    fmwrite(i*32 + j*8 + 5, (voice->reg5[j] & 0xE0) | (bnd>>8));
                     fmwrite(i*32 + j*8 + 4, bnd & 0xFF);
                 }
             }
@@ -409,6 +579,224 @@ void MidiPitchBend(BYTE bChannel, int iBend) {
 }
 
 
+void find_voice(BOOL patch1617_allowed_voice1, BOOL patch1617_allowed_voice2, BYTE bChannel, BYTE bNote)
+{
+    int i;
+    USHORT td, timediff1=0, timediff2=0;
+    
+    // Patch 0-15
+    for (i=0; i<16; i++)
+    {
+        Voice *voice = &voice_table[i];
+        if (voice->flags1 & 1)
+        {
+            if (voice->channel == bChannel && voice->bNote == bNote)
+                voice_off(i);
+        }
+        td = gwTimer - voice->timer;
+        if (td < timediff1)
+        {
+            if (td >= timediff2)
+            {
+                timediff2 = td;
+                voice2 = i;
+            }
+        }
+        else
+        {
+            timediff2 = timediff1;
+            voice2 = voice1;
+            timediff1 = td;
+            voice1 = i;
+        }
+    }
+    
+    // Patch 16
+    if (voice_table[16].flags1 & 1)
+    {
+        if (voice_table[16].channel == bChannel && voice_table[16].bNote == bNote)
+            voice_off(16);
+    }
+    td = gwTimer - voice_table[16].timer;
+    if (patch1617_allowed_voice1 || td < timediff1)
+    {
+        if ( !patch1617_allowed_voice2 && td >= timediff2 )
+        {
+            timediff2 = gwTimer - voice_table[16].timer;
+            voice2 = 16;
+        }
+    }
+    else
+    {
+        timediff2 = timediff1;
+        voice2 = voice1;
+        timediff1 = td;
+        voice1 = 16;
+    }
+
+    // Patch 17
+    if (voice_table[17].flags1 & 1)
+    {
+        if (voice_table[17].channel == bChannel && voice_table[17].bNote == bNote)
+            voice_off(17);
+    }
+    td = gwTimer - voice_table[17].timer;
+    if (patch1617_allowed_voice1 || td < timediff1)
+    {
+        if ( !patch1617_allowed_voice2 && td >= timediff2 )
+            voice2 = 17;
+    }
+    else
+    {
+        if (voice1 != 16 || !patch1617_allowed_voice2)
+            voice2 = voice1;
+        voice1 = 17;
+    }
+    
+}
+
+int steal_voice(int patch1617_allowed)
+{
+    UINT i, last_voice, max_voices = (patch1617_allowed?18:16);
+    BYTE chn, chncmp = 0, bit3 = 0;
+	USHORT timediff = 0;
+    
+    for (i=0; i<max_voices; i++)
+    {
+        chn = voice_table[i].channel == 9?1:voice_table[i].channel+2;
+        if (bit3 == (voice_table[i].flags1 & 8))
+        {
+            if (chn <= chncmp)
+            {
+                if ( chn != chncmp || (gwTimer - voice_table[i].timer) <= timediff )
+                    continue;
+            }
+        }
+        else if (!bit3) bit3 = 8;
+        
+        chncmp = chn;
+        timediff = gwTimer - voice_table[i].timer;
+        last_voice = i;
+    }
+    voice_off(last_voice);
+    return last_voice;
+}
+
+void  setup_operator(
+        int offset,
+        int bNote,
+        int bVelocity,
+        USHORT reg,
+        int fixed_pitch,
+        int rel_velocity,
+        int channel,
+        int oper,
+        int voicenr)
+{
+    int panmask, note, transpose, block, notemod12, reg1, detune;
+    USHORT fnum_block;
+    BYTE reg4, reg5;
+    
+    panmask = pan_mask[channel];
+    fmwrite(reg + 7, 0);
+    
+    if (fixed_pitch)
+    {
+        note = bNote;
+    }
+    else
+    {
+        transpose = ((((gBankMem[offset + 5]) << 2) & 0x7F) | (gBankMem[offset + 4] & 3));
+        if (gBankMem[offset + 5] & 0x10) // signed?
+            transpose |= ~0x7F;
+        note = transpose + bNote;
+    }
+    
+    if ( note < 19 )
+        note += 12 * ((18 - note) / 12u) + 12;
+    if ( note > 114 )
+        note += -12 - 12 * ((note - 115) / 12u);
+    block = (note - 19) / 12;
+    notemod12 = (note - 19) % 12;
+    
+    fmwrite(reg, gBankMem[offset]);
+    
+    switch ( rel_velocity )
+    {
+    case 0:
+    default:
+        reg1 = 0;
+        break;
+    case 1:
+        reg1 = (127 - bVelocity) >> 4;
+        break;
+    case 2:
+        reg1 = (127 - bVelocity) >> 3;
+        break;
+    case 3:
+        if ( bVelocity < 64 )
+            reg1 = ((63 - bVelocity) >> 1) + 16;
+        else
+            reg1 = (127 - bVelocity) >> 2;
+        break;
+    }
+    reg1 += (gBankMem[offset + 1] & 0x3F); // Attenuation
+    if (reg1 > 63) *((PBYTE)&reg1) = 63;
+    reg1 += (gBankMem[offset + 1] & 0xC0); // KSL
+    voice_table[voicenr].reg1[oper] = (BYTE)reg1;
+    
+    fmwrite(reg + 1, NATV_CalcVolume((BYTE)reg1, rel_velocity, channel));
+    fmwrite(reg + 2, gBankMem[offset + 2]);
+    fmwrite(reg + 3, gBankMem[offset + 3]);
+    
+    if ( fixed_pitch )
+    {
+        reg4 = gBankMem[offset + 4];
+        reg5 = gBankMem[offset + 5];
+    }
+    else
+    {
+        detune = gBankMem[offset + 4] & (~3);
+        if (detune)
+        {
+            detune = ((detune >> 2) * td_adjust_setup_operator[notemod12]) >> 8;
+            if (block > 1) 
+                detune >>= block - 1;
+        }
+        detune += notemod12;
+        voice_table[voicenr].reg5[oper] = (((detune >> 8) & 3) | (gBankMem[offset + 5] & 0xE0) | (block << 2)); // detune | delay | block
+        fnum_block = MidiCalcFAndB(NATV_CalcBend(detune, giBend[channel], gbChanBendRange[channel]), block);
+        reg4 = (BYTE)fnum_block;
+        reg5 = (BYTE)(fnum_block >> 8) | (voice_table[voicenr].reg5[oper] & 0xE0);
+        voice_table[voicenr].detune[oper] = (BYTE)detune;
+    }
+    fmwrite(reg + 4, reg4);
+    fmwrite(reg + 5, reg5);
+    fmwrite(reg + 5, ((gBankMem[offset + 6] & 0x30) && panmask != 0x30)?(panmask | gBankMem[offset + 6] & 0xCF):gBankMem[offset + 6]);
+    fmwrite(reg + 7, gBankMem[offset + 7]);
+}
+
+void  setup_voice(int voicenr, int offset, int channel, int bNote, int bVelocity)
+{
+    BYTE rel_vel, flags;
+    
+    flags   = gBankMem[offset];
+    rel_vel = gBankMem[offset + 3];
+    offset += 4;
+    setup_operator(offset     , bNote, bVelocity, 32 * voicenr     , flags & 0x10, rel_vel        & 3, channel, 0, voicenr);
+    setup_operator(offset + 8 , bNote, bVelocity, 32 * voicenr + 8 , flags & 0x20, (rel_vel >> 2) & 3, channel, 1, voicenr);
+    setup_operator(offset + 16, bNote, bVelocity, 32 * voicenr + 16, flags & 0x40, (rel_vel >> 4) & 3, channel, 2, voicenr);
+    setup_operator(offset + 24, bNote, bVelocity, 32 * voicenr + 24, flags & 0x80, (rel_vel >> 6) & 3, channel, 3, voicenr);
+
+    voice_table[voicenr].patch_flag = flags;
+    voice_table[voicenr].rel_vel = rel_vel;
+    voice_table[voicenr].timer = gwTimer;
+    voice_table[voicenr].bNote = bNote;
+    voice_table[voicenr].flags1 = 1;
+    voice_table[voicenr].channel = channel;
+    
+    gwTimer++;
+}
 
 
 
@@ -424,382 +812,152 @@ void MidiPitchBend(BYTE bChannel, int iBend) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
+#if 0
+#include <mmddk.h>
 modSynthMessage(UINT uDeviceID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
-    switch(msg) {
+    switch(uMsg) {
         case MODM_DATA:     // 7
         break;
         case MODM_LONGDATA: // 8
         break;
     }
 }
+#endif
 
-void STDCALL MidiMessage(DWORD dwData) {
-    BYTE    bChannel, bVelocity, bNote;
-    WORD    wTemp;
+void STDCALL MidiMessage(DWORD dwData) 
+{
+    BYTE    bMsgType, bChannel, bVelocity, bNote;
+    int     i;
 
     // D1("\nMidiMessage");
-    bChannel =    (dwData & 0x0000000F) >> 0;
-    bNote =       (dwData & 0x00007F00) >> 8;
-    bVelocity =   (dwData & 0x007F0000) >> 16;
+    bMsgType =    (BYTE)((dwData & 0x000000F0));
+    bChannel =    (BYTE)((dwData & 0x0000000F) >> 0);
+    bNote =       (BYTE)((dwData & 0x00007F00) >> 8);
+    bVelocity =   (BYTE)((dwData & 0x007F0000) >> 16);
     
-    switch ((BYTE)dwData & 0xF0) {
-        
-    }
-}
-
-void _MidiMessage_4(uint dwData)
-
-{
-  byte bVar1;
-  byte bVar2;
-  uint uVar3;
-  byte bVar5;
-  uint msgType;
-  byte bChannel;
-  byte *pbVar7;
-  int iVar8;
-  byte bChannel2;
-  
-  bVar5 = (byte)(dwData >> 8);
-  uVar3 = dwData >> 0x10;
-  msgType = dwData & 0xf0;
-  bChannel = (byte)dwData & 0xf;
-  bVar1 = (byte)(dwData >> 0x10);
-  bVar2 = bVar1 & 0x7f;
-  bChannel2 = (byte)dwData & 0xf;
-  if (msgType != 0x80) { /* turn key on, or key off if volume == 0 */
-    if (msgType != 0x90) { /* turn key off */
-      if (msgType != 0xb0) {
-        if (msgType == 0xc0) {
-          (&_program_table_S9323)[bChannel] = bVar5 & 0x7f;
-          return;
-        }
-        if (msgType != 0xe0) {
-          return;
-        }
-        _MidiPitchBend_8(bChannel2,(uVar3 & 0xffff007f) << 7 | bVar5 & 0x7f);
-        return;
-      }
-      bVar5 = bVar5 & 0x7f;
-      if (bVar5 < 0x41) {
-        if (bVar5 == 0x40) {
-          _hold_controller_8((uint)bChannel,uVar3 & 0x7f);
-          return;
-        }
-        if (bVar5 == 6) {
-          if ((*(byte *)((int)&_hold_table_S9326 + (uint)bChannel) & 6) != 6) {
-            return;
-          }
-          *(byte *)((int)&_gbChanBendRange_S9325 + (uint)bChannel) = bVar2;
-          return;
-        }
-        if (bVar5 == 7) {
-          *(byte *)((int)&_gbChanVolume_S9339 + (uint)bChannel) = bVar1 & 0x7f;
-          *(undefined *)((int)&_gbChanAtten_S9338 + (uint)bChannel) =
-               (&_gbVelocityAtten_S9329)[(uVar3 & 0x7f) >> 2];
-        }
-        else {
-          if ((bVar5 == 8) || (bVar5 == 10)) {
-            if (0x50 < bVar2) {
-              *(undefined *)((int)&_pan_mask_S9324 + (uint)bChannel) = 0x20;
-              return;
+    switch (bMsgType) 
+    {
+        case 0x90:      /* turn key on, or key off if volume == 0 */
+            if (bVelocity)
+            {
+                note_on(bChannel, bNote, bVelocity); 
             }
-            if (bVar2 < 0x30) {
-              *(undefined *)((int)&_pan_mask_S9324 + (uint)bChannel) = 0x10;
-              return;
+            else 
+            {
+                note_off(bChannel, bNote);
             }
-            *(undefined *)((int)&_pan_mask_S9324 + (uint)bChannel) = 0x30;
-            return;
-          }
-          if (bVar5 != 0xb) {
-            return;
-          }
-          *(byte *)((int)&_gbChanExpr_S9340 + (uint)bChannel) = bVar1 & 0x7f;
-        }
-        _NATV_CalcNewVolume_4(bChannel2);
-        return;
-      }
-      if (0x78 < bVar5) {
-        if (bVar5 == 0x79) {
-          uVar3 = (uint)bChannel;
-          if ((*(byte *)((int)&_hold_table_S9326 + uVar3) & 1) != 0) {
-            dwData = 0;
-            pbVar7 = &_voice_table;
-            do {
-              if ((((*pbVar7 & 1) != 0) && (pbVar7[4] == bChannel)) && ((*pbVar7 & 4) != 0)) {
-                _voice_off_4(dwData);
-              }
-              dwData = dwData + 1;
-              pbVar7 = pbVar7 + 0x1a;
-            } while ((int)pbVar7 < 0x6bc09954);
-          }
-          *(byte *)((int)&_hold_table_S9326 + uVar3) =
-               *(byte *)((int)&_hold_table_S9326 + uVar3) & 0xfe;
-          *(undefined *)((int)&_gbChanVolume_S9339 + uVar3) = 100;
-          *(undefined *)((int)&_gbChanExpr_S9340 + uVar3) = 0x7f;
-          *(undefined2 *)((int)&_giBend_S9327 + uVar3 * 2) = 0x2000;
-          *(undefined *)((int)&_pan_mask_S9324 + uVar3) = 0x30;
-          *(undefined *)((int)&_gbChanBendRange_S9325 + uVar3) = 2;
-          return;
-        }
-        if (bVar5 != 0x7b) {
-          if (bVar5 < 0x7c) {
-            return;
-          }
-          if (bVar5 < 0x7e) goto LAB_6bc07049;
-          if (0x7f < bVar5) {
-            return;
-          }
-        }
-        iVar8 = 0;
-        pbVar7 = &_voice_table;
-        do {
-          if ((((*pbVar7 & 1) != 0) && (pbVar7[4] == bChannel)) && ((*pbVar7 & 4) == 0)) {
-            _voice_off_4(iVar8);
-          }
-          pbVar7 = pbVar7 + 0x1a;
-          iVar8 = iVar8 + 1;
-        } while ((int)pbVar7 < 0x6bc09954);
-        return;
-      }
-      if (bVar5 == 0x78) {
-LAB_6bc07049:
-        iVar8 = 0;
-        pbVar7 = &DAT_6bc09784;
-        do {
-          if (((pbVar7[-4] & 1) != 0) && (*pbVar7 == bChannel)) {
-            _voice_off_4(iVar8);
-          }
-          pbVar7 = pbVar7 + 0x1a;
-          iVar8 = iVar8 + 1;
-        } while ((int)pbVar7 < 0x6bc09958);
-        return;
-      }
-      if (bVar5 != 0x62) {
-        if (bVar5 != 99) {
-          if (bVar5 == 100) {
-            if ((dwData & 0x7f0000) == 0) {
-              *(byte *)((int)&_hold_table_S9326 + (uint)bChannel) =
-                   *(byte *)((int)&_hold_table_S9326 + (uint)bChannel) | 2;
-              return;
+            break;
+        case 0x80:      /* turn key off */
+            note_off(bChannel, bNote);
+            break;
+        case 0xb0:      /* change control */
+            switch (bNote)
+            {
+                case 6:
+                    if ( (hold_table[bChannel] & 6) == 6 )
+                        gbChanBendRange[bChannel] = bVelocity;
+                    break;
+                case 7:
+                    gbChanAtten[bChannel] = gbVelocityAtten[bVelocity >> 1];
+                    gbChanVolume[bChannel] = bVelocity;
+                    NATV_CalcNewVolume(bChannel);
+                    break;
+                case 8:
+                case 10:
+                    if ( bVelocity <= 80 )
+                    {
+                      if ( bVelocity >= 48 )
+                        pan_mask[bChannel] = 48;
+                      else
+                        pan_mask[bChannel] = 16;
+                    }
+                    else
+                    {
+                      pan_mask[bChannel] = 32;
+                    }
+                    break;
+                case 11:
+                    gbChanExpr[bChannel] = bVelocity;
+                    NATV_CalcNewVolume(bChannel);
+                    break;
+                case 64:
+                    hold_controller(bChannel, bVelocity);
+                    break;
+                case 98:
+                    hold_table[bChannel] &= ~2;
+                    break;
+                case 99:
+                    hold_table[bChannel] &= ~4;                    
+                    break;
+                case 100:
+                    if ( bVelocity == 0 )
+                    {
+                        hold_table[bChannel] |= 2;
+                    }
+                    else
+                    {
+                        hold_table[bChannel] &= ~2;
+                    }
+                    break;
+                case 101:
+                    if ( bVelocity == 0 )
+                    {
+                        hold_table[bChannel] |= 4;
+                    }
+                    else
+                    {
+                        hold_table[bChannel] &= ~4;
+                    }
+                    break;
+                case 120:
+                case 124:
+                case 125:
+                    for (i = 0; i < sizeof(voice_table)/sizeof(voice_table[0]); i++)
+                    {
+                        if ((voice_table[i].flags1 & 1) && voice_table[i].channel == bChannel)
+                            voice_off(i);
+                    }
+                    break;
+                case 121:
+                    if (hold_table[bChannel] & 1)
+                    {
+                        for (i = 0; i < sizeof(voice_table)/sizeof(voice_table[0]); i++)
+                        {
+                            if ((voice_table[i].flags1 & 1) && voice_table[i].channel == bChannel && (voice_table[i].flags1 & 4))
+                                voice_off(i);
+                        }
+                    }
+                    hold_table[bChannel] &= ~1u;
+                    gbChanVolume[bChannel] = 100;
+                    gbChanExpr[bChannel] = 127;
+                    giBend[bChannel] = 0x2000;
+                    pan_mask[bChannel] = 48;
+                    gbChanBendRange[bChannel] = 2;
+                    break;
+                case 123:
+                case 126:
+                case 127:
+                    for (i = 0; i < sizeof(voice_table)/sizeof(voice_table[0]); i++)
+                    {
+                        if ((voice_table[i].flags1 & 1) && voice_table[i].channel == bChannel && (voice_table[i].flags1 & 4) == 0)
+                            voice_off(i);
+                    }
+                    break;
             }
-            goto LAB_6bc0701e;
-          }
-          if (bVar5 != 0x65) {
-            return;
-          }
-          if ((dwData & 0x7f0000) == 0) {
-            *(byte *)((int)&_hold_table_S9326 + (uint)bChannel) =
-                 *(byte *)((int)&_hold_table_S9326 + (uint)bChannel) | 4;
-            return;
-          }
-        }
-        *(byte *)((int)&_hold_table_S9326 + (uint)bChannel) =
-             *(byte *)((int)&_hold_table_S9326 + (uint)bChannel) & 0xfb;
-        return;
-      }
-LAB_6bc0701e:
-      *(byte *)((int)&_hold_table_S9326 + (uint)bChannel) =
-           *(byte *)((int)&_hold_table_S9326 + (uint)bChannel) & 0xfd;
-      return;
+            break;
+        case 0xc0:
+            program_table[bChannel] = bNote;
+            break;
+        case 0xe0:      /* pitch bend */
+            MidiPitchBend(bChannel, bNote | (bVelocity << 7));
+            break;
     }
-    if ((dwData & 0x7f0000) != 0) {
-      _note_on_12(bChannel2,bVar5 & 0xffffff7f,bVar1 & 0x7f);
-      return;
-    }
-  }
-  _note_off_8(bChannel2,(byte)(bVar5 & 0xffffff7f));
-  return;
 }
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-void __stdcall sub_6BC06E8A(uint32_t param_1)
-{
-    uint8_t uVar1;
-    uint32_t uVar2;
-    uint32_t uVar3;
-    uint8_t uVar4;
-    uint32_t uVar5;
-    uint8_t uVar7;
-    uint32_t uVar6;
-    uint8_t uVar8;
-    uint8_t *puVar9;
-    uint32_t uVar10;
-    int32_t iVar11;
-    
-    uVar7 = (uint8_t)(param_1 >> 8);
-    uVar5 = param_1 >> 0x10;
-    uVar6 = param_1 & 0xF0;
-    uVar8 = ( uint8_t)param_1 & 0xF;
-    uVar1 = ( uint8_t)(param_1 >> 0x10);
-    uVar10 = param_1 & 0x7F0000;
-    uVar2 = param_1 & 0x7F0000;
-    uVar3 = param_1 & 0x7F0000;
-    uVar4 = uVar1 & 0x7F;
-    param_1 = param_1 & 0xFFFFFF0F;
-    if (uVar6 != 0x80) {
-        if (uVar6 != 0x90) {
-            if (uVar6 != 0xB0) {
-                if (uVar6 == 0xC0) {
-                    *(uint8_t *)(uVar8 + 0x6BC091D8) = uVar7 & 0x7F;
-                    return;
-                }
-                if (uVar6 != 0xE0) {
-                    return;
-                }
-                sub_6BC06C54(param_1, (uVar5 & 0xFFFF007F) << 7 | uVar7 & 0x7F);
-                return;
-            }
-            uVar7 = uVar7 & 0x7F;
-            if (uVar7 < 0x41) {
-                if (uVar7 == 0x40) {
-                    sub_6BC06C06(uVar8, uVar5 & 0x7F);
-                    return;
-                }
-                if (uVar7 == 6) {
-                    if ((*(uint8_t *)(uVar8 + 0x6BC091B8) & 6) != 6) {
-                        return;
-                    }
-                    *(uint8_t *)(uVar8 + 0x6BC091F8) = uVar4;
-                    return;
-                }
-                if (uVar7 == 7) {
-                    *(uint8_t *)(uVar8 + 0x6BC091C8) = uVar1 & 0x7F;
-                    *(unk8_t *)(uVar8 + 0x6BC09180) =
-                         *(unk8_t *)(((uVar5 & 0x7F) >> 2) + 0x6BC090C0);
-                }
-                else {
-                    if ((uVar7 == 8) || (uVar7 == 10)) {
-                        if (0x50 < uVar4) {
-                            *(unk8_t *)(uVar8 + 0x6BC09150) = 0x20;
-                            return;
-                        }
-                        if (uVar4 < 0x30) {
-                            *(unk8_t *)(uVar8 + 0x6BC09150) = 0x10;
-                            return;
-                        }
-                        *(unk8_t *)(uVar8 + 0x6BC09150) = 0x30;
-                        return;
-                    }
-                    if (uVar7 != 0xB) {
-                        return;
-                    }
-                    *(uint8_t *)(uVar8 + 0x6BC091E8) = uVar1 & 0x7F;
-                }
-                sub_6BC06E18(param_1);
-                return;
-            }
-            if (0x78 < uVar7) {
-                if (uVar7 == 0x79) {
-                    uVar10 = (uint32_t)uVar8;
-                    if ((*(uint8_t *)(uVar10 + 0x6BC091B8) & 1) != 0) {
-                        param_1 = 0;
-                        puVar9 = ( uint8_t *)0x6BC09780;
-                        do {
-                            if ((((*puVar9 & 1) != 0) && (puVar9[4] == uVar8)) &&
-                               ((*puVar9 & 4) != 0)) {
-                                sub_6BC05EAE(param_1);
-                            }
-                            param_1 = param_1 + 1;
-                            puVar9 = puVar9 + 0x1A;
-                        } while (( int32_t)puVar9 < 0x6BC09954);
-                    }
-                    *(uint8_t *)(uVar10 + 0x6BC091B8) = *(uint8_t *)(uVar10 + 0x6BC091B8) & 0xFE;
-                    *(unk8_t *)(uVar10 + 0x6BC091C8) = 100;
-                    *(unk8_t *)(uVar10 + 0x6BC091E8) = 0x7F;
-                    *(unk16_t *)(uVar10 * 2 + 0x6BC09198) = 0x2000;
-                    *(unk8_t *)(uVar10 + 0x6BC09150) = 0x30;
-                    *(unk8_t *)(uVar10 + 0x6BC091F8) = 2;
-                    return;
-                }
-                if (uVar7 != 0x7B) {
-                    if (uVar7 < 0x7C) {
-                        return;
-                    }
-                    if (uVar7 < 0x7E) goto loc_6BC07049;
-                    if (0x7F < uVar7) {
-                        return;
-                    }
-                }
-                iVar11 = 0;
-                puVar9 = (uint8_t *)0x6BC09780;
-                do {
-                    if ((((*puVar9 & 1) != 0) && (puVar9[4] == uVar8)) && ((*puVar9 & 4) == 0)) {
-                        sub_6BC05EAE(iVar11);
-                    }
-                    puVar9 = puVar9 + 0x1A;
-                    iVar11 = iVar11 + 1;
-                } while ((int32_t)puVar9 < 0x6BC09954);
-                return;
-            }
-            if (uVar7 == 0x78) {
-loc_6BC07049:
-                iVar11 = 0;
-                puVar9 = (uint8_t *)0x6BC09784;
-                do {
-                    if (((puVar9[-4] & 1) != 0) && (*puVar9 == uVar8)) {
-                        sub_6BC05EAE(iVar11);
-                    }
-                    puVar9 = puVar9 + 0x1A;
-                    iVar11 = iVar11 + 1;
-                } while ((int32_t)puVar9 < 0x6BC09958);
-                return;
-            }
-            if (uVar7 != 0x62) {
-                if (uVar7 != 99) {
-                    if (uVar7 == 100) {
-                        if (uVar2 == 0) {
-                            *(uint8_t *)(uVar8 + 0x6BC091B8) = *(uint8_t *)(uVar8 + 0x6BC091B8) | 2;
-                            return;
-                        }
-                        goto loc_6BC0701E;
-                    }
-                    if (uVar7 != 0x65) {
-                        return;
-                    }
-                    if (uVar10 == 0) {
-                        *(uint8_t *)(uVar8 + 0x6BC091B8) = *(uint8_t *)(uVar8 + 0x6BC091B8) | 4;
-                        return;
-                    }
-                }
-                *(uint8_t *)(uVar8 + 0x6BC091B8) = *(uint8_t *)(uVar8 + 0x6BC091B8) & 0xFB;
-                return;
-            }
-loc_6BC0701E:
-            *(uint8_t *)(uVar8 + 0x6BC091B8) = *(uint8_t *)(uVar8 + 0x6BC091B8) & 0xFD;
-            return;
-        }
-        if (uVar3 != 0) {
-            sub_6BC069F4(param_1, uVar7 & 0x7F, uVar1 & 0x7F);
-            return;
-        }
-    }
-    sub_6BC05F14(param_1, uVar7 & 0x7F);
-    return;
-}
 
 
 

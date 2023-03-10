@@ -1,5 +1,8 @@
 #include <windows.h>
 #include <stdio.h>
+#ifdef _MSC_VER
+#define vsnprintf _vsnprintf
+#endif
 
 #include "util.h"
 
@@ -15,8 +18,8 @@ void dPrintfA(const CHAR* fmt, ...) {
 }
 
 void util_getParentPathA(char* inout) {
-    int len = lstrlenA(inout);
-    for (int i=1; i <= len; i++) {
+    int i, len = lstrlenA(inout);
+    for (i=1; i <= len; i++) {
         if (inout[len-i] == '\\') {
             inout[len-i+1] = '\0';
             break;

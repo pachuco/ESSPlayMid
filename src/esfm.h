@@ -1,5 +1,15 @@
 #pragma once
+#if defined(WIN32) && _MSVC_VER < 1800
+#include <windows.h>
+typedef USHORT uint16_t;
+typedef BYTE uint8_t;
+typedef DWORD uint32_t;
+typedef BOOL bool;
+#else
 #include <stdint.h>
+#include <stdbool.h>
+#endif
+
 
 // deduced from PE/NE resource size in NT4 and win3.1 drivers
 // may not be fixed size if bank can be different
@@ -21,3 +31,8 @@ void esfm_resetFM();
 void esfm_startupDevice();
 void esfm_shutdownDevice();
 void esfm_midiShort(uint32_t dwData);
+
+// Include this to use C source, otherwise uses ASM source
+#ifndef ASM_SRC
+#include "crud/essfm.h"
+#endif
