@@ -124,7 +124,7 @@ BOOL updateDynFile() {
 }
 
 void fmWriteCallback(BYTE baseOffset, BYTE data) {
-    WRITE_PORT_UCHAR((fmBase+baseOffset), data);
+    IODriver_writeU8((fmBase+baseOffset), data);
 }
 
 void fmDelayCallback(void) {
