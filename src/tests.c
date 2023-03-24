@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "util.h"
-#include "esfm.h"
+#include "esfmmidi.h"
 
 #define ASS(X) assert(X)
 

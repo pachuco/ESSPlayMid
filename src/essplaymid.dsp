@@ -87,7 +87,7 @@ LINK32=xilink6.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\esfm.c
+SOURCE=.\esfmmidi.c
 # End Source File
 # Begin Source File
 
@@ -111,7 +111,7 @@ SOURCE=.\util.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=.\esfm.h
+SOURCE=.\esfmmidi.h
 # End Source File
 # Begin Source File
 

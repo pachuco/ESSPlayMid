@@ -4,7 +4,7 @@
 #include <conio.h>
 #include "util.h"
 #include "iodriver.h"
-#include "esfm.h"
+#include "esfmmidi.h"
 
 typedef struct {
     HMIDIIN hmi;

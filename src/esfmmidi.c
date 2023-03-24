@@ -1,4 +1,4 @@
-#include "esfm.h"
+#include "esfmmidi.h"
 
 typedef struct {
     uint8_t    flags1;
