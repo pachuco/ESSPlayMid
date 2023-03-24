@@ -51,7 +51,7 @@ void IODriver_Exit(void) {
 #elif IODRIVER==IODRIVER_BUTTIO
 #pragma comment(lib, "buttio.lib")
 #include "buttio.h"
-// ButtIO
+
 static IOHandler buttioHand = {0};
 
 
@@ -70,6 +70,7 @@ BOOL IODriver_Init(USHORT first, USHORT last) {
         return FALSE;
     iopm_fillRange(buttioHand.iopm, first, last, TRUE);
     buttio_flushIOPMChanges(&buttioHand);
+    
     return TRUE;
 }
 
@@ -79,6 +80,36 @@ void IODriver_Exit(void) {
 
 ////////////////////////////////////////////////////////////////////////////////
 #elif IODRIVER==IOEMU_ESFMU
+#include <esfm.h>
+
+USHORT rangeFirst=0, rangeLast=0;
+esfm_chip esfmchip = {0};
+
+void IODriver_writeU8(USHORT port, BYTE value) {
+    ESFM_write_port(&esfmchip, port - rangeFirst, value);
+}
+
+BYTE IODriver_readU8(USHORT port) {
+    return ESFM_read_port(&esfmchip, port - rangeFirst);
+}
+
+BOOL IODriver_Init(USHORT first, USHORT last) {
+    rangeFirst = first;
+    rangeLast  = last;
+    
+    //TODO: sound init and driving
+    
+    ESFM_init(&esfmchip);
+    
+    return TRUE;
+}
+
+void IODriver_Exit(void) {
+    ZeroMemory(&esfmchip, sizeof(esfm_chip));
+    
+    rangeFirst = 0;
+    rangeLast  = 0;
+}
 
 #else
 ////////////////////////////////////////////////////////////////////////////////

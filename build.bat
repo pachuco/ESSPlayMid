@@ -8,11 +8,13 @@ move /y esfmmidi.obj bin\
 
 ::must not contain spaces!
 set buttiolocation=C:\p_files\prog\_proj\CodeCocks\buttio
+set esfmulocation=C:\p_files\prog\_proj\CodeCocks\ESS_shenanigans\ESFMu\core
 
 set opts=-std=c11 -mconsole -g -Wall -Wextra -DNONMMAP_FALLBACK -DASM_SRC
-set linkinc=-I%buttiolocation%\src\ -L%buttiolocation%\bin\
+set linkinc=-I%buttiolocation%\src\ -L%buttiolocation%\bin\ -I%esfmulocation%
 set linkinc=%linkinc% -lwinmm -lbuttio
 set compiles=bin\esfmmidi.obj src\main.c src\iodriver.c src\esfmmidi.c src\util.c
+set compiles=%compiles% %esfmulocation%\esfm_registers.c %esfmulocation%\esfm.c
 set errlog=.\essmidi_err.log
 set out=.\bin\essmidi.exe
 
