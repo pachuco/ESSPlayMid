@@ -7,6 +7,8 @@
 #    define STDCALL __stdcall 
 #  endif
 #  define static_assert(x,y)
+#else
+#define STDCALL __stdcall
 #endif
 
 
@@ -232,9 +234,9 @@ BYTE gbVelocityAtten[32] = {
     2,  2,  1,  1,  1,  0,  0,  0
 };
 SHORT fnum[12] = {
-    514, 544, 577, 611,
-    647, 686, 727, 770,
-    816, 864, 916, 970
+    514, 544, 577, 611,  /* G , G#, A , A# */
+    647, 686, 727, 770,  /* B , C , C#, D  */
+    816, 864, 916, 970   /* D#, E , F,  F# */
 };
 
 extern PBYTE gBankMem;
@@ -280,23 +282,23 @@ SHORT NATV_CalcBend(USHORT detune, USHORT iBend, USHORT iBendRange)
 {
     //!WARN iBend is int16 in OPL midi driver sample
     if ( iBend == 0x2000 ) 
-        return detune & 0xFF;
+        return detune;
     else 
 	{
         int v5;
         if ( iBend >= 0x3F80 ) iBend = 0x4000;
-        v5 = (iBendRange * (iBend - 0x2000) >> 5) + 0x1800;
+        v5 = ((iBendRange * (((int)iBend - 0x2000))) >> 5) + 0x1800;
         return (detune * (USHORT)((NATV_table1[(v5>>2)&0x3F] * NATV_table2[v5>>8]) >> 10) + 512) >> 10;
     }
 }
 
-UINT MidiCalcFAndB(UINT bend, BYTE block) {
+USHORT MidiCalcFAndB(UINT bend, BYTE block) {
     while (bend >= 1024) {
         bend >>= 1;
         block++;
     }
     if ( block > 7 ) block = 7;
-    return bend  | (block << 10);
+    return bend  | ((USHORT)block << 10);
 }
 
 void MidiFlush() {
@@ -322,6 +324,8 @@ void fmwrite(USHORT a1, USHORT a2) {
     
     MidiPosition += 3;
     //return pos * 2;
+
+	//printf ("esfm a1:%X a2:%X\n", a1, a2);
 }
 
 void note_on(BYTE channel, BYTE bNote, BYTE bVelocity)
@@ -585,6 +589,9 @@ void find_voice(BOOL patch1617_allowed_voice1, BOOL patch1617_allowed_voice2, BY
     USHORT td, timediff1=0, timediff2=0;
     
     // Patch 0-15
+    voice1 = voice2 = 255;
+
+    // Patch 0-15
     for (i=0; i<16; i++)
     {
         Voice *voice = &voice_table[i];
@@ -593,21 +600,24 @@ void find_voice(BOOL patch1617_allowed_voice1, BOOL patch1617_allowed_voice2, BY
             if (voice->channel == bChannel && voice->bNote == bNote)
                 voice_off(i);
         }
-        td = gwTimer - voice->timer;
-        if (td < timediff1)
-        {
-            if (td >= timediff2)
-            {
-                timediff2 = td;
-                voice2 = i;
-            }
-        }
         else
         {
-            timediff2 = timediff1;
-            voice2 = voice1;
-            timediff1 = td;
-            voice1 = i;
+            td = gwTimer - voice->timer;
+            if (td < timediff1)
+            {
+                if (td >= timediff2)
+                {
+                    timediff2 = td;
+                    voice2 = i;
+                }
+            }
+            else
+            {
+                timediff2 = timediff1;
+                voice2 = voice1;
+                timediff1 = td;
+                voice1 = i;
+            }
         }
     }
     
@@ -617,21 +627,24 @@ void find_voice(BOOL patch1617_allowed_voice1, BOOL patch1617_allowed_voice2, BY
         if (voice_table[16].channel == bChannel && voice_table[16].bNote == bNote)
             voice_off(16);
     }
-    td = gwTimer - voice_table[16].timer;
-    if (patch1617_allowed_voice1 || td < timediff1)
-    {
-        if ( !patch1617_allowed_voice2 && td >= timediff2 )
-        {
-            timediff2 = gwTimer - voice_table[16].timer;
-            voice2 = 16;
-        }
-    }
     else
     {
-        timediff2 = timediff1;
-        voice2 = voice1;
-        timediff1 = td;
-        voice1 = 16;
+        td = gwTimer - voice_table[16].timer;
+        if (patch1617_allowed_voice1 || td < timediff1)
+        {
+            if (!patch1617_allowed_voice2 && td >= timediff2)
+            {
+                timediff2 = gwTimer - voice_table[16].timer;
+                voice2 = 16;
+            }
+        }
+        else
+        {
+            timediff2 = timediff1;
+            voice2 = voice1;
+            timediff1 = td;
+            voice1 = 16;
+        }
     }
 
     // Patch 17
@@ -640,19 +653,21 @@ void find_voice(BOOL patch1617_allowed_voice1, BOOL patch1617_allowed_voice2, BY
         if (voice_table[17].channel == bChannel && voice_table[17].bNote == bNote)
             voice_off(17);
     }
-    td = gwTimer - voice_table[17].timer;
-    if (patch1617_allowed_voice1 || td < timediff1)
-    {
-        if ( !patch1617_allowed_voice2 && td >= timediff2 )
-            voice2 = 17;
-    }
     else
     {
-        if (voice1 != 16 || !patch1617_allowed_voice2)
-            voice2 = voice1;
-        voice1 = 17;
+        td = gwTimer - voice_table[17].timer;
+        if (patch1617_allowed_voice1 || td < timediff1)
+        {
+            if (!patch1617_allowed_voice2 && td >= timediff2)
+                voice2 = 17;
+        }
+        else
+        {
+            if (voice1 != 16 || !patch1617_allowed_voice2)
+                voice2 = voice1;
+            voice1 = 17;
+        }
     }
-    
 }
 
 int steal_voice(int patch1617_allowed)
@@ -671,10 +686,18 @@ int steal_voice(int patch1617_allowed)
                 if ( chn != chncmp || (gwTimer - voice_table[i].timer) <= timediff )
                     continue;
             }
+            else
+            {
+                chncmp = chn;
+            }
         }
-        else if (!bit3) bit3 = 8;
+        else if (!bit3)
+        {
+            bit3 = 8;
+            chncmp = chn;
+        }
+        else continue;
         
-        chncmp = chn;
         timediff = gwTimer - voice_table[i].timer;
         last_voice = i;
     }
@@ -693,29 +716,26 @@ void  setup_operator(
         int oper,
         int voicenr)
 {
-    int panmask, note, transpose, block, notemod12, reg1, detune;
+    int note, transpose, block, notemod12, reg1, detune;
     USHORT fnum_block;
-    BYTE reg4, reg5;
+    BYTE reg4, reg5, reg6, panmask;
     
     panmask = pan_mask[channel];
     fmwrite(reg + 7, 0);
     
-    if (fixed_pitch)
-    {
-        note = bNote;
-    }
-    else
+	note = bNote;
+    if (!fixed_pitch)
     {
         transpose = ((((gBankMem[offset + 5]) << 2) & 0x7F) | (gBankMem[offset + 4] & 3));
         if (gBankMem[offset + 5] & 0x10) // signed?
-            transpose |= ~0x7F;
-        note = transpose + bNote;
+            transpose *= -1;
+        note += transpose;
     }
     
     if ( note < 19 )
-        note += 12 * ((18 - note) / 12u) + 12;
+        note += 12 * (((18 - note) / 12u) + 1);
     if ( note > 114 )
-        note += -12 - 12 * ((note - 115) / 12u);
+        note -= 12 * (((note - 115) / 12u) + 1);
     block = (note - 19) / 12;
     notemod12 = (note - 19) % 12;
     
@@ -741,11 +761,11 @@ void  setup_operator(
         break;
     }
     reg1 += (gBankMem[offset + 1] & 0x3F); // Attenuation
-    if (reg1 > 63) *((PBYTE)&reg1) = 63;
+    if (reg1 > 63) reg1 = 63;
     reg1 += (gBankMem[offset + 1] & 0xC0); // KSL
     voice_table[voicenr].reg1[oper] = (BYTE)reg1;
     
-    fmwrite(reg + 1, NATV_CalcVolume((BYTE)reg1, rel_velocity, channel));
+    fmwrite(reg + 1, NATV_CalcVolume((BYTE)reg1, (BYTE)rel_velocity, (BYTE)channel));
     fmwrite(reg + 2, gBankMem[offset + 2]);
     fmwrite(reg + 3, gBankMem[offset + 3]);
     
@@ -756,23 +776,25 @@ void  setup_operator(
     }
     else
     {
-        detune = gBankMem[offset + 4] & (~3);
+        detune = ((int)*((char*)&gBankMem[offset + 4])) & (~3);
         if (detune)
         {
             detune = ((detune >> 2) * td_adjust_setup_operator[notemod12]) >> 8;
             if (block > 1) 
                 detune >>= block - 1;
         }
-        detune += notemod12;
-        voice_table[voicenr].reg5[oper] = (((detune >> 8) & 3) | (gBankMem[offset + 5] & 0xE0) | (block << 2)); // detune | delay | block
-        fnum_block = MidiCalcFAndB(NATV_CalcBend(detune, giBend[channel], gbChanBendRange[channel]), block);
-        reg4 = (BYTE)fnum_block;
-        reg5 = (BYTE)(fnum_block >> 8) | (voice_table[voicenr].reg5[oper] & 0xE0);
-        voice_table[voicenr].detune[oper] = (BYTE)detune;
+        detune += fnum[notemod12];
+        voice_table[voicenr].reg5[oper] = (BYTE)((HIBYTE(detune) & 3) | (gBankMem[offset + 5] & 0xE0) | (block << 2)); // detune | delay | block
+        fnum_block = MidiCalcFAndB(NATV_CalcBend((USHORT)detune, giBend[channel], (USHORT)gbChanBendRange[channel]), (BYTE)block);
+        reg4 = LOBYTE(fnum_block);
+        reg5 = HIBYTE(fnum_block) | (voice_table[voicenr].reg5[oper] & 0xE0);
+        voice_table[voicenr].detune[oper] = (USHORT)detune;
     }
+    reg6 = gBankMem[offset + 6];
+    if ((reg6 & 0x30) && panmask != 0x30) reg6 = panmask | (reg6 & 0xCF);
     fmwrite(reg + 4, reg4);
     fmwrite(reg + 5, reg5);
-    fmwrite(reg + 5, ((gBankMem[offset + 6] & 0x30) && panmask != 0x30)?(panmask | gBankMem[offset + 6] & 0xCF):gBankMem[offset + 6]);
+    fmwrite(reg + 6, reg6);
     fmwrite(reg + 7, gBankMem[offset + 7]);
 }
 
