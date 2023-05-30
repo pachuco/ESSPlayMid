@@ -540,18 +540,15 @@ BYTE NATV_CalcVolume(BYTE reg1, BYTE rel_velocity, BYTE channel)
 
 void NATV_CalcNewVolume(BYTE bChannel)
 {
-    UINT i, j, offset;
+    UINT i, j;
 
-    for (i=0, offset=1; i < sizeof(voice_table)/sizeof(voice_table[0]); i++) 
+    for (i=0; i < sizeof(voice_table)/sizeof(voice_table[0]); i++) 
     {
         Voice *voice = &voice_table[i];
         if ((voice->flags1 & 1) && (voice->channel == bChannel || bChannel == 0xFF)) 
         {
-            for (j=0; j < sizeof(voice->channel); j++)
-            {
-                fmwrite((USHORT)offset, NATV_CalcVolume(voice->reg1[j], (voice->rel_vel & 3), voice->channel));
-                offset += 8;
-            }
+            for (j=0; j < sizeof(voice->reg1)/sizeof(voice->reg1[0]); j++)
+                fmwrite(i*32 + j*8 + 1, NATV_CalcVolume(voice->reg1[j], (voice->rel_vel & 3), voice->channel));
         }
     }   
 }
@@ -588,7 +585,6 @@ void find_voice(BOOL patch1617_allowed_voice1, BOOL patch1617_allowed_voice2, BY
     int i;
     USHORT td, timediff1=0, timediff2=0;
     
-    // Patch 0-15
     voice1 = voice2 = 255;
 
     // Patch 0-15
